@@ -28,9 +28,10 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bson.Document;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -48,11 +49,12 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static woolbattle.woolbattle.team.TeamSystem.findTeamDyeColor;
+import woolbattle.woolbattle.WoolHelper;
 
 public class AllPassivePerks {
     private static final PassivePerk<BlockEvent, BlockBreakEvent> woolMultiplication = new PassivePerk<BlockEvent, BlockBreakEvent>(
             new ItemStack(Material.EMERALD),
-            ChatColor.AQUA + "Wool Duplication",
+            Component.text("Wool Duplication", NamedTextColor.AQUA),
             false,
             "Increases the amount of wool you get"
     ){
@@ -62,7 +64,7 @@ public class AllPassivePerks {
         public <S extends Event, H extends S> void functionality(H event) {
             assert event instanceof BlockBreakEvent;
             Player p = ((BlockBreakEvent) event).getPlayer();
-            ItemStack wool = new ItemStack(Material.WOOL, Config.givenWoolAmount*factor, findTeamDyeColor(p).getWoolData());
+            ItemStack wool = new ItemStack(WoolHelper.getWoolMaterial(findTeamDyeColor(p)), Config.givenWoolAmount*factor);
             AtomicInteger amount = new AtomicInteger();
 
             p.getInventory().spliterator().tryAdvance(itemStack -> amount.addAndGet(itemStack.getAmount()));
@@ -85,8 +87,8 @@ public class AllPassivePerks {
      */
 
     public static void load(){
-        woolMultiplication.register();
-        assignPlayersToPerks();
+        // woolMultiplication.register();
+        // assignPlayersToPerks();
     }
 
     public static void assignPlayersToPerks(){
@@ -105,13 +107,13 @@ public class AllPassivePerks {
                 while(cursor.hasNext()){
                     Document document = cursor.next();
 
-                    if(document.get("passive") == null || !document.get("passive").equals(perk.getName().substring(2))){
+                    if(document.get("passive") == null || !document.get("passive").equals(perk.getName())){
                         continue;
                     }
 
                     Player player = Bukkit.getPlayer(UUID.fromString((String) document.get("_id")));
 
-                    if(document.get("passive").equals(perk.getName().substring(2)) && player != null){
+                    if(document.get("passive").equals(perk.getName()) && player != null){
                         players.add(player);
                     }
                 }
@@ -121,7 +123,7 @@ public class AllPassivePerks {
 
             perk.setPlayers(players);
 
-            newPassivePerks.put(perk.getName().substring(2), perk);
+            newPassivePerks.put(perk.getName(), perk);
 
             if(perk.isOverwriteEvent()){
                 try{

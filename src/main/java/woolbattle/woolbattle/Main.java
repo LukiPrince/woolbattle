@@ -38,6 +38,7 @@ import woolbattle.woolbattle.achievements.AchievementSystem;
 import woolbattle.woolbattle.base.Base;
 import woolbattle.woolbattle.lives.LivesSystem;
 import woolbattle.woolbattle.lobby.LobbySystem;
+import woolbattle.woolbattle.lobby.SetMapCommand;
 import woolbattle.woolbattle.lobby.StartGameCommand;
 import woolbattle.woolbattle.lobby.StopGameCommand;
 import woolbattle.woolbattle.maprestaurationsystem.MapCommand;
@@ -49,6 +50,12 @@ import woolbattle.woolbattle.woolsystem.BlockBreakingSystem;
 import woolbattle.woolbattle.woolsystem.BlockRegistrationCommand;
 import woolbattle.woolbattle.woolsystem.MapBlocksCommand;
 
+import org.bukkit.WorldCreator;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import java.io.File;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -66,6 +73,32 @@ public final class Main extends JavaPlugin {
         // Plugin startup logic
         instance = this;
 
+        // Pre-load all map worlds so they are ready when /setmap is used
+        new File("plugins/WoolBattle/maps").mkdirs();
+        File mapsDir = new File("plugins/WoolBattle/maps");
+        File[] mapFiles = mapsDir.listFiles((d, name) -> name.endsWith(".json"));
+        if (mapFiles != null) {
+            for (File mapFile : mapFiles) {
+                try {
+                    JsonObject json = JsonParser.parseReader(new FileReader(mapFile)).getAsJsonObject();
+                    String gameWorld = json.get("gameWorld").getAsString();
+                    if (gameWorld != null && Bukkit.getWorld(gameWorld) == null) {
+                        org.bukkit.World loaded = new WorldCreator(gameWorld).createWorld();
+                        if (loaded != null) {
+                            getLogger().info("[WoolBattle] Pre-loaded world: " + gameWorld);
+                        } else {
+                            getLogger().warning("[WoolBattle] Failed to load world: " + gameWorld);
+                        }
+                    }
+                } catch (Exception e) {
+                    getLogger().warning("[WoolBattle] Could not read map file: " + mapFile.getName());
+                }
+            }
+        }
+
+        // Load map-specific config (spawns, world, heights) for the default map
+        MapConfig.load(Config.defaultMap);
+
         ConnectionString connectionString = new ConnectionString(Config.mongoDatabase);
         MongoClientSettings settings = MongoClientSettings.builder()
                 .applyConnectionString(connectionString)
@@ -81,6 +114,7 @@ public final class Main extends JavaPlugin {
         this.getCommand("gstart").setExecutor(new StartGameCommand());
         this.getCommand("gstop").setExecutor(new StopGameCommand());
         this.getCommand("stats").setExecutor(new StatsCommand());
+        this.getCommand("setmap").setExecutor(new SetMapCommand());
 
         AllActivePerks.load();
         AllPassivePerks.load();
@@ -103,6 +137,12 @@ public final class Main extends JavaPlugin {
 
         BlockBreakingSystem.setCollectBrokenBlocks(false);
         BlockBreakingSystem.fetchMapBlocks();
+
+        // Always daytime in all worlds
+        for (org.bukkit.World world : Bukkit.getWorlds()) {
+            world.setGameRule(org.bukkit.GameRules.ADVANCE_TIME, false);
+            world.setTime(6000);
+        }
 
         for (Player player : Bukkit.getOnlinePlayers())
         {

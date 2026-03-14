@@ -27,22 +27,36 @@ package woolbattle.woolbattle.achievements;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Updates;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import woolbattle.woolbattle.Config;
 import woolbattle.woolbattle.Main;
+import woolbattle.woolbattle.WoolHelper;
 import woolbattle.woolbattle.lobby.LobbySystem;
+import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import static com.mongodb.client.model.Filters.eq;
 
 public class AchievementSystem implements Listener {
+
+    private static int countWoolInInventory(Player player) {
+        int count = 0;
+        for (ItemStack stack : player.getInventory().getContents()) {
+            if (stack != null && WoolHelper.isWool(stack.getType())) {
+                count += stack.getAmount();
+            }
+        }
+        return count;
+    }
 
     /**
      * A method which, upon being called, checks if the player is qualified to be given
@@ -58,8 +72,8 @@ public class AchievementSystem implements Listener {
         if (arrayList.contains("fullwool")) {
             return;
         }
-        else if (player.getInventory().contains(Material.WOOL, Config.maxStacks * 64)) {
-            player.sendMessage(ChatColor.GREEN + "You just received the 'Strategist' Achievement!");
+        else if (countWoolInInventory(player) >= Config.maxStacks * 64) {
+            player.sendMessage(Component.text("You just received the 'Strategist' Achievement!", NamedTextColor.GREEN));
 
             Bson updates = Updates.push("achievements", "fullwool");
             collection.updateOne(query, updates);
@@ -85,7 +99,7 @@ public class AchievementSystem implements Listener {
             return;
         }
         else {
-            player.sendMessage(ChatColor.GREEN + "You just received the 'Dominator' Achievement!");
+            player.sendMessage(Component.text("You just received the 'Dominator' Achievement!", NamedTextColor.GREEN));
             arrayList.add("fullwool");
             Bson updates = (Bson) arrayList;
 
@@ -111,7 +125,7 @@ public class AchievementSystem implements Listener {
                 HashMap<UUID, ArrayList<String>> currentAchievements = Cache.getAchievements();
                 currentAchievements.get(player.getUniqueId()).add("carried");
                 Cache.setAchievements(currentAchievements);
-                player.sendMessage(ChatColor.GREEN + "You just received the 'British way' Achievement!");
+                player.sendMessage(Component.text("You just received the 'British way' Achievement!", NamedTextColor.GREEN));
             }
         } */
     // }
@@ -126,7 +140,7 @@ public class AchievementSystem implements Listener {
      public static void closeCall (String winner){
          MongoDatabase db = Main.getMongoDatabase();
          MongoCollection<Document> collection = db.getCollection("playerAchievements");
-         Bukkit.broadcastMessage(winner);
+         Bukkit.broadcast(Component.text(winner));
          System.out.println(winner);
          if (!winner.equals("Unknown")) {
              for (int i = 0; i <= Cache.getTeamMembers().get(winner).size(); i++) {
@@ -138,7 +152,7 @@ public class AchievementSystem implements Listener {
                  } else if (arrayList.contains("killstreak5")) {
                      return;
                  } else {
-                     Cache.getTeamMembers().get(winner).get(i).sendMessage(ChatColor.GREEN + "You just received the 'Dominator' Achievement!");
+                     Cache.getTeamMembers().get(winner).get(i).sendMessage(Component.text("You just received the 'Dominator' Achievement!", NamedTextColor.GREEN));
                      arrayList.add("fullwool");
                      Bson updates = (Bson) arrayList;
 

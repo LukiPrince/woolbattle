@@ -24,8 +24,9 @@
 
 package woolbattle.woolbattle.stats;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -37,11 +38,15 @@ public class StatsCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings) {
         if(!(commandSender instanceof Player)){
-            commandSender.sendMessage(ChatColor.RED + "You can only use this command as a normal player!");
+            commandSender.sendMessage(Component.text("You can only use this command as a normal player!", NamedTextColor.RED));
             return true;
         }
         if(strings.length == 0){
-            commandSender.sendMessage(StatsSystem.getPlayerStatsFormatted((OfflinePlayer) commandSender));
+            if (commandSender instanceof OfflinePlayer) {
+                commandSender.sendMessage(StatsSystem.getPlayerStatsFormatted((OfflinePlayer) commandSender));
+            } else {
+                commandSender.sendMessage(Component.text("You must specify a player name when running from console.", NamedTextColor.RED));
+            }
             return true;
         }
         String playerName = strings[0];

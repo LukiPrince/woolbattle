@@ -24,8 +24,12 @@
 
 package woolbattle.woolbattle.base;
 
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.EnderPearl;
@@ -36,15 +40,17 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.weather.WeatherChangeEvent;
 import org.bukkit.projectiles.ProjectileSource;
 import woolbattle.woolbattle.Cache;
-import woolbattle.woolbattle.Config;
+import woolbattle.woolbattle.MapConfig;
+import woolbattle.woolbattle.WoolHelper;
 import woolbattle.woolbattle.lobby.LobbySystem;
 import woolbattle.woolbattle.team.TeamSystem;
+import woolbattle.woolbattle.woolsystem.BlockBreakingSystem;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,6 +66,16 @@ public class Base implements Listener {
      */
     @EventHandler
     public void onEntityDamage(EntityDamageEvent event) {
+        if (event.getCause() == EntityDamageEvent.DamageCause.VOID && event.getEntity() instanceof Player) {
+            event.setCancelled(true);
+            Player player = (Player) event.getEntity();
+            if (LobbySystem.gameStarted) {
+                player.teleport(MapConfig.midLocation);
+            } else {
+                player.teleport(MapConfig.lobbyLocation);
+            }
+            return;
+        }
         if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK && event.getCause() != EntityDamageEvent.DamageCause.PROJECTILE) {
             event.setCancelled(true);
         }
@@ -70,17 +86,28 @@ public class Base implements Listener {
 
     /**
      * An event which changes the chat format to one that looks better
-     * @param event the AsyncPlayerChatEvent
+     * @param event the AsyncChatEvent
      * @author Beelzebub
      */
     @EventHandler
-    public void onPlayerChat(AsyncPlayerChatEvent event) {
+    public void onPlayerChat(AsyncChatEvent event) {
         event.setCancelled(true);
+        String message = PlainTextComponentSerializer.plainText().serialize(event.message());
+        Player player = event.getPlayer();
         if (LobbySystem.gameStarted) {
-            Bukkit.broadcastMessage(TeamSystem.getTeamColour(TeamSystem.getPlayerTeam(event.getPlayer(), true)) + "[" + TeamSystem.getPlayerTeam(event.getPlayer(), false) + "] " + event
-                    .getPlayer().getDisplayName() + ChatColor.GRAY + ": " + ChatColor.WHITE + event.getMessage());
+            String team = TeamSystem.getPlayerTeam(player, false);
+            TextColor teamColor = TeamSystem.getTeamColour(TeamSystem.getPlayerTeam(player, true));
+            Bukkit.broadcast(
+                Component.text("[" + team + "] " + player.getName(), teamColor)
+                    .append(Component.text(": ", NamedTextColor.GRAY))
+                    .append(Component.text(message, NamedTextColor.WHITE))
+            );
         } else {
-            Bukkit.broadcastMessage(ChatColor.LIGHT_PURPLE + event.getPlayer().getDisplayName() + ChatColor.GRAY + ": " + ChatColor.WHITE + event.getMessage());
+            Bukkit.broadcast(
+                Component.text(player.getName(), NamedTextColor.LIGHT_PURPLE)
+                    .append(Component.text(": ", NamedTextColor.GRAY))
+                    .append(Component.text(message, NamedTextColor.WHITE))
+            );
         }
     }
 
@@ -120,7 +147,10 @@ public class Base implements Listener {
      */
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
-        if (event.getBlock().getType() == Material.WOOL && event.getBlock().getLocation().getY() <= Config.maxHeight || event.getPlayer().getGameMode() == GameMode.CREATIVE) {
+        if (WoolHelper.isWool(event.getBlock().getType()) && event.getBlock().getLocation().getY() <= MapConfig.maxHeight || event.getPlayer().getGameMode() == GameMode.CREATIVE) {
+            if (LobbySystem.gameStarted && WoolHelper.isWool(event.getBlock().getType())) {
+                BlockBreakingSystem.trackPlacedBlock(event.getBlock().getLocation());
+            }
             return;
         }
         event.setCancelled(true);
@@ -144,6 +174,11 @@ public class Base implements Listener {
      */
     @EventHandler
     public void onWeatherChange(WeatherChangeEvent event){
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onLeavesDecay(LeavesDecayEvent event){
         event.setCancelled(true);
     }
 

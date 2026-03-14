@@ -24,8 +24,9 @@
 
 package woolbattle.woolbattle.maprestaurationsystem;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -77,7 +78,7 @@ public class MapCommand implements CommandExecutor {
                                 Long.parseLong(args[4])
                         );
                 }catch(NumberFormatException e){
-                    commandSender.sendMessage(ChatColor.RED + "One of the latter 4 arguments does not seem to possess the right format (integer), to be parsed properly.");
+                    commandSender.sendMessage(Component.text("One of the latter 4 arguments does not seem to possess the right format (integer), to be parsed properly.", NamedTextColor.RED));
                     return false;
                 }
                 System.out.println("is called\n\n");

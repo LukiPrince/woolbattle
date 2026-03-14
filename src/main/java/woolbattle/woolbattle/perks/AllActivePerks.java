@@ -24,10 +24,14 @@
 
 package woolbattle.woolbattle.perks;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
+import woolbattle.woolbattle.WoolHelper;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -91,8 +95,8 @@ public class AllActivePerks implements Listener {
             if(!subtractWool(player, woolCost)){
                 event.setCancelled(true);
                 projectile.remove();
-                player.playNote(player.getLocation(), Instrument.PIANO, Note.flat(1, Note.Tone.C));
-                player.playNote(player.getLocation(), Instrument.PIANO, Note.flat(1, Note.Tone.B));
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.5f);
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.4f);
             }
             else{
                 if(cooldown != 0) {
@@ -115,7 +119,9 @@ public class AllActivePerks implements Listener {
         if(event.getDamager() instanceof Player){
             Player player = (Player) event.getDamager();
             Player damagedPlayer = (Player) event.getEntity();
-            if(player.getItemInHand().hasItemMeta() && player.getItemInHand().getItemMeta().getDisplayName().substring(2).equals("Duel")){
+            Component itemDisplayName = player.getInventory().getItemInMainHand().hasItemMeta() ? player.getInventory().getItemInMainHand().getItemMeta().displayName() : null;
+            String itemPlainName = itemDisplayName != null ? PlainTextComponentSerializer.plainText().serialize(itemDisplayName) : "";
+            if(itemPlainName.equals("Duel")){
                 event.setCancelled(true);
                 ActivePerk perk = Cache.getActivePerks().get("Duel");
 
@@ -127,16 +133,18 @@ public class AllActivePerks implements Listener {
                 HashMap<Player, Player> playerDuels = Cache.getPlayerDuels();
 
                 if(playerDuels.containsKey(damagedPlayer)){
-                    String damagedPlayerDuelName = getTeamColour(getPlayerTeam(playerDuels.get(damagedPlayer), true)) + damagedPlayer.getDisplayName();
-                    player.sendMessage(
-                            ChatColor.RED +  "This player is already in a duel with " + damagedPlayerDuelName + ChatColor.RED + "!");
+                    Component damagedPlayerDuelName = Component.text(damagedPlayer.getName(),
+                            getTeamColour(getPlayerTeam(playerDuels.get(damagedPlayer), true)));
+                    player.sendMessage(Component.text("This player is already in a duel with ", NamedTextColor.RED)
+                            .append(damagedPlayerDuelName).append(Component.text("!", NamedTextColor.RED)));
                     return;
                 }
 
                 if(playerDuels.containsKey(player)){
-                    String playerDuelName = getTeamColour(getPlayerTeam(playerDuels.get(player), true)) + player.getDisplayName();
-                    player.sendMessage(
-                            ChatColor.RED +  "You are already in a duel with " + playerDuelName + ChatColor.RED + "!");
+                    Component playerDuelName = Component.text(player.getName(),
+                            getTeamColour(getPlayerTeam(playerDuels.get(player), true)));
+                    player.sendMessage(Component.text("You are already in a duel with ", NamedTextColor.RED)
+                            .append(playerDuelName).append(Component.text("!", NamedTextColor.RED)));
                     return;
                 }
 
@@ -145,8 +153,8 @@ public class AllActivePerks implements Listener {
 
                 if(!subtractWool(player, woolCost)){
                     event.setCancelled(true);
-                    player.playNote(player.getLocation(), Instrument.PIANO, Note.flat(1, Note.Tone.C));
-                    player.playNote(player.getLocation(), Instrument.PIANO, Note.flat(1, Note.Tone.B));
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.5f);
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.4f);
                     return;
                 }
                 else{
@@ -157,11 +165,15 @@ public class AllActivePerks implements Listener {
 
                     Cache.setPlayerDuels(playerDuels);
 
-                    String playerName = getTeamColour(getPlayerTeam(player, true)) + player.getDisplayName();
-                    String damagedPlayerName = getTeamColour(getPlayerTeam(damagedPlayer, true)) + damagedPlayer.getDisplayName();
+                    Component playerName = Component.text(player.getName(),
+                            getTeamColour(getPlayerTeam(player, true)));
+                    Component damagedPlayerName = Component.text(damagedPlayer.getName(),
+                            getTeamColour(getPlayerTeam(damagedPlayer, true)));
 
-                    player.sendMessage(ChatColor.GOLD + "You are now in a duel with " + damagedPlayerName + ChatColor.GOLD + "!");
-                    damagedPlayer.sendMessage(ChatColor.GOLD + "You are now in a duel with " + playerName + ChatColor.GOLD + "!");
+                    player.sendMessage(Component.text("You are now in a duel with ", NamedTextColor.GOLD)
+                            .append(damagedPlayerName).append(Component.text("!", NamedTextColor.GOLD)));
+                    damagedPlayer.sendMessage(Component.text("You are now in a duel with ", NamedTextColor.GOLD)
+                            .append(playerName).append(Component.text("!", NamedTextColor.GOLD)));
 
                     StatsSystem.addActivePerkUsage(player);
                 }
@@ -217,8 +229,8 @@ public class AllActivePerks implements Listener {
             if(!subtractWool(player, woolCost)){
                 event.setCancelled(true);
                 hook.remove();
-                player.playNote(player.getLocation(), Instrument.PIANO, Note.flat(1, Note.Tone.C));
-                player.playNote(player.getLocation(), Instrument.PIANO, Note.flat(1, Note.Tone.B));
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.5f);
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.4f);
                 return;
             }
             else{
@@ -254,7 +266,7 @@ public class AllActivePerks implements Listener {
 
         nearbyWoolBlocks.add(block);
 
-        if(block.getType() != Material.WOOL){
+        if(!WoolHelper.isWool(block.getType())){
 
             World world = playerLocation.getWorld();
             double x = location.getX();
@@ -270,7 +282,7 @@ public class AllActivePerks implements Listener {
             nearbyWoolBlocks.add(new Location(world,x+1, y, z+1).getBlock());
             nearbyWoolBlocks.add(new Location(world,x+1, y, z).getBlock());
             nearbyWoolBlocks.add(new Location(world,x+1, y, z-1).getBlock());
-            nearbyWoolBlocks.removeIf(nearbyBlock -> nearbyBlock.getType() != Material.WOOL);
+            nearbyWoolBlocks.removeIf(nearbyBlock -> !WoolHelper.isWool(nearbyBlock.getType()));
         }
 
         HashMap<Player, ArrayList<ArrayList<Block>>> jumpPlatformBlocks = Cache.getJumpPlatformBlocks();
@@ -311,36 +323,36 @@ public class AllActivePerks implements Listener {
     public static void load(){
 
         ActivePerk shears = new ActivePerk(new ItemStack(Material.SHEARS), 0, 0, false, false)
-                .setItemName(ChatColor.AQUA + "Shears")
-                .addEnchantment(Enchantment.DIG_SPEED, 5, false)
-                .addEnchantment(Enchantment.DURABILITY, 10, false)
+                .setItemName(Component.text("Shears", NamedTextColor.AQUA))
+                .addEnchantment(Enchantment.EFFICIENCY, 5, false)
+                .addEnchantment(Enchantment.UNBREAKING, 10, false)
                 .addEnchantment(Enchantment.KNOCKBACK, 5, false);
 
         ItemStack shearsItemStack = shears.getItemStack();
         ItemMeta shearsItemMeta = shearsItemStack.getItemMeta();
-        shearsItemMeta.spigot().setUnbreakable(true);
+        shearsItemMeta.setUnbreakable(true);
         shearsItemStack.setItemMeta(shearsItemMeta);
         shears.setItemStack(shearsItemStack);
 
         shears.register();
 
         ActivePerk bow = new ActivePerk(new ItemStack(Material.BOW), 0, 1, false, false)
-                .setItemName(ChatColor.AQUA + "Bow")
-                .addEnchantment(Enchantment.DURABILITY, 10, false)
+                .setItemName(Component.text("Bow", NamedTextColor.AQUA))
+                .addEnchantment(Enchantment.UNBREAKING, 10, false)
                 .addEnchantment(Enchantment.KNOCKBACK, 5, false)
-                .addEnchantment(Enchantment.ARROW_KNOCKBACK, 5, false)
-                .addEnchantment(Enchantment.ARROW_INFINITE, 1, false);
+                .addEnchantment(Enchantment.PUNCH, 5, false)
+                .addEnchantment(Enchantment.INFINITY, 1, false);
 
         ItemStack bowItemStack = bow.getItemStack();
         ItemMeta bowItemMeta = bowItemStack.getItemMeta();
-        bowItemMeta.spigot().setUnbreakable(true);
+        bowItemMeta.setUnbreakable(true);
         bowItemStack.setItemMeta(bowItemMeta);
         bow.setItemStack(bowItemStack);
 
         bow.register();
 
         ActivePerk enderPearl = new ActivePerk(new ItemStack(Material.ENDER_PEARL), 5, 5, false, false)
-                .setItemName(ChatColor.AQUA + "Ender Pearl").addEnchantment(Enchantment.DURABILITY, true);
+                .setItemName(Component.text("Ender Pearl", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true);
 
         enderPearl.register();
 
@@ -385,24 +397,23 @@ public class AllActivePerks implements Listener {
                     if(material != Material.AIR){
                         continue;
                     }
-                    block.setType(Material.WOOL);
-                    block.setData(teamColor.getWoolData());
+                    block.setType(WoolHelper.getWoolMaterial(teamColor));
                 }
             }
-        }.setItemName(ChatColor.AQUA + "Rescue Platform").addEnchantment(Enchantment.DURABILITY, true)
+        }.setItemName(Component.text("Rescue Platform", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
          .setDescription("Places blocks under you.");
 
         rescuePlatform.register();
 
-        ActivePerk exchanger = new ActivePerk(new ItemStack(Material.SNOW_BALL), 15, 10, false)
-                .setItemName(ChatColor.AQUA + "Exchanger").addEnchantment(Enchantment.DURABILITY, true)
+        ActivePerk exchanger = new ActivePerk(new ItemStack(Material.SNOWBALL), 15, 10, false)
+                .setItemName(Component.text("Exchanger", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
                 .setDescription("Swap your Location with another player.");
         //no onExecute method here, see onProjectileLaunch event
 
         exchanger.register();
 
         ActivePerk knockbackStick = new ActivePerk(new ItemStack(Material.STICK), 0, 0, false)
-                .setItemName(ChatColor.AQUA + "Knockback Stick")
+                .setItemName(Component.text("Knockback Stick", NamedTextColor.AQUA))
                 .addEnchantment(Enchantment.KNOCKBACK,100, false)
                 .setDescription("Best weapon in the game.");
 
@@ -445,8 +456,7 @@ public class AllActivePerks implements Listener {
 
                     newPlayerBlocks.add(block);
 
-                    block.setType(Material.WOOL);
-                    block.setData(teamColor.getWoolData());
+                    block.setType(WoolHelper.getWoolMaterial(teamColor));
                 }
 
                 playerBlocks.add(newPlayerBlocks);
@@ -456,23 +466,23 @@ public class AllActivePerks implements Listener {
                 Cache.setJumpPlatformBlocks(jumpPlatformBlocks);
 
             }
-        }.setItemName(ChatColor.AQUA + "Jump Platform").addEnchantment(Enchantment.DURABILITY, true)
+        }.setItemName(Component.text("Jump Platform", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
          .setDescription("Boosts yourself up.");
 
         jumpPlatform.register();
 
         ActivePerk grapplingHook = new ActivePerk(new ItemStack(Material.FISHING_ROD), 5, 5, false)
-                .setItemName(ChatColor.AQUA + "Grappling Hook").addEnchantment(Enchantment.DURABILITY, true)
+                .setItemName(Component.text("Grappling Hook", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
                 .setDescription("Helps you go fast from one point to another.");
 
         grapplingHook.register();
 
-        ActivePerk homeTeleport = new ActivePerk(new ItemStack(Material.WATCH), 30, 25, true){
+        ActivePerk homeTeleport = new ActivePerk(new ItemStack(Material.CLOCK), 30, 25, true){
             @Override
             public void onExecute(PlayerInteractEvent event, Player player) {
                 teleportPlayerTeamSpawn(player);
             }
-        }.setItemName(ChatColor.AQUA + "Home Teleport").addEnchantment(Enchantment.DURABILITY, true)
+        }.setItemName(Component.text("Home Teleport", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
          .setDescription("Teleports you home.");
 
         homeTeleport.register();
@@ -509,23 +519,22 @@ public class AllActivePerks implements Listener {
                     if(material != Material.AIR){
                         continue;
                     }
-                    block.setType(Material.WOOL);
-                    block.setData(teamColor.getWoolData());
+                    block.setType(WoolHelper.getWoolMaterial(teamColor));
                 }
             }
-        }.setItemName(ChatColor.AQUA + "Rescue Pod").addEnchantment(Enchantment.DURABILITY, true)
+        }.setItemName(Component.text("Rescue Pod", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
          .setDescription("Places blocks around you.");
 
         rescuePod.register();
 
-        ActivePerk duel = new ActivePerk(new ItemStack(Material.WOOD_SWORD), 30, 10, false)
-                .setItemName(ChatColor.AQUA + "Duel").addEnchantment(Enchantment.DURABILITY, true)
+        ActivePerk duel = new ActivePerk(new ItemStack(Material.WOODEN_SWORD), 30, 10, false)
+                .setItemName(Component.text("Duel", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
                 .setDescription("Puts you in a 1V1 with the hit player.");
 
         duel.register();
 
         ActivePerk Egg = new ActivePerk(new ItemStack(Material.EGG), 0, 1, false)
-                .setItemName(ChatColor.AQUA + "Egg").addEnchantment(Enchantment.DURABILITY, true)
+                .setItemName(Component.text("Egg", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
                 .setDescription("Basically a Bow for Eggs.");
 
         Egg.register();

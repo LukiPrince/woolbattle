@@ -27,6 +27,8 @@ package woolbattle.woolbattle.perks;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -61,12 +63,12 @@ public abstract class PassivePerk<G extends Event, E extends G> implements Liste
 
     private ArrayList<Player> players = new ArrayList<>();
 
-    public PassivePerk(ItemStack item, String name, int delayInTicks, String description){
+    public PassivePerk(ItemStack item, Component name, int delayInTicks, String description){
         this.delay = delayInTicks;
-        this.name = name;
+        this.name = PlainTextComponentSerializer.plainText().serialize(name);
         this.item = item;
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(name);
+        meta.displayName(name);
         item.setItemMeta(meta);
         this.description = description;
 
@@ -75,17 +77,17 @@ public abstract class PassivePerk<G extends Event, E extends G> implements Liste
         collection.listIndexes().forEach((Consumer) document -> {
             assert document instanceof Document;
 
-            if(((Document) document).get("passive").equals(name)){
+            if(((Document) document).get("passive").equals(this.name)){
                 players.add(Bukkit.getPlayer((UUID) ((Document) document).get("_id")));
             }
         });
     }
 
-    public PassivePerk (ItemStack item, String name, boolean overwriteEvent, String description){
-        this.name = name;
+    public PassivePerk (ItemStack item, Component name, boolean overwriteEvent, String description){
+        this.name = PlainTextComponentSerializer.plainText().serialize(name);
         this.item = item;
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(name);
+        meta.displayName(name);
         item.setItemMeta(meta);
         this.overwriteEvent = overwriteEvent;
         this.description = description;
@@ -95,7 +97,7 @@ public abstract class PassivePerk<G extends Event, E extends G> implements Liste
         collection.listIndexes().forEach((Consumer) document -> {
             assert document instanceof Document;
 
-            if(((Document) document).get("passive") != null && ((Document) document).get("passive").equals(name)){
+            if(((Document) document).get("passive") != null && ((Document) document).get("passive").equals(this.name)){
                 players.add(Bukkit.getPlayer((UUID) ((Document) document).get("_id")));
             }
         });
@@ -123,10 +125,10 @@ public abstract class PassivePerk<G extends Event, E extends G> implements Liste
     public final void register() {
         HashMap<String, PassivePerk<? extends Event, ?>> passivePerks = Cache.getPassivePerks();
         if (passivePerks.containsKey(this.name)) {
-            passivePerks.replace(this.name.substring(2), this);
+            passivePerks.replace(this.name, this);
             return;
         }
-        passivePerks.put(this.name.substring(2), this);
+        passivePerks.put(this.name, this);
         Cache.setPassivePerks(passivePerks);
     }
 

@@ -29,8 +29,9 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Updates;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import woolbattle.woolbattle.Cache;
@@ -51,6 +52,8 @@ public class StatsSystem {
         HashMap<Player, HashMap<String, Integer>> playerStats = Cache.getPlayerStats();
 
         HashMap<String, Integer> stats = playerStats.get(player);
+
+        if (stats == null) return;
 
         stats.put("used_perks", (stats.get("used_perks") + 1));
 
@@ -163,14 +166,14 @@ public class StatsSystem {
      * @param player- The player that stats get returned as a formatted string
      * @author SimsumMC
      */
-    public static String getPlayerStatsFormatted(OfflinePlayer player) {
+    public static Component getPlayerStatsFormatted(OfflinePlayer player) {
         MongoDatabase db = Main.getMongoDatabase();
         MongoCollection<Document> collection = db.getCollection("playerStats");
 
         Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
 
         if (foundDocument == null) {
-            return ChatColor.RED + "This player has no stats!";
+            return Component.text("This player has no stats!", NamedTextColor.RED);
         } else {
             int games = (int) foundDocument.get("games");
             int wins = (int) foundDocument.get("wins");
@@ -193,19 +196,19 @@ public class StatsSystem {
                 kd = kills;
             }
 
-            String formattedString = ChatColor.GRAY + "-= " + ChatColor.YELLOW + "Statistics from " + ChatColor.GOLD +
-                    player.getName() + ChatColor.GRAY + " (Alltime) =-\n"
-                    + "Games: " + ChatColor.YELLOW + games + "\n" + ChatColor.GRAY
-                    + "Wins: " + ChatColor.YELLOW + wins + "\n" + ChatColor.GRAY
-                    + "Win Probability: " + ChatColor.YELLOW + String.format("%.3g", winProbability) + "%" + "\n" + ChatColor.GRAY
-                    + "Kills: " + ChatColor.YELLOW + kills + "\n" + ChatColor.GRAY
-                    + "Deaths: " + ChatColor.YELLOW + deaths + "\n" + ChatColor.GRAY
-                    + "K/D: " + ChatColor.YELLOW + String.format("%.3g", kd) + "\n" + ChatColor.GRAY
-                    + "Streaks: " + ChatColor.YELLOW + streaks + "\n" + ChatColor.GRAY
-                    + "Used Perks Amount: " + ChatColor.YELLOW + usedPerks + "\n" + ChatColor.GRAY
-                    + "---------------------------------";
-
-            return formattedString;
+            return Component.text("-= ", NamedTextColor.GRAY)
+                    .append(Component.text("Statistics from ", NamedTextColor.YELLOW))
+                    .append(Component.text(player.getName(), NamedTextColor.GOLD))
+                    .append(Component.text(" (Alltime) =-\n", NamedTextColor.GRAY))
+                    .append(Component.text("Games: ", NamedTextColor.GRAY)).append(Component.text(games + "\n", NamedTextColor.YELLOW))
+                    .append(Component.text("Wins: ", NamedTextColor.GRAY)).append(Component.text(wins + "\n", NamedTextColor.YELLOW))
+                    .append(Component.text("Win Probability: ", NamedTextColor.GRAY)).append(Component.text(String.format("%.3g", winProbability) + "%\n", NamedTextColor.YELLOW))
+                    .append(Component.text("Kills: ", NamedTextColor.GRAY)).append(Component.text(kills + "\n", NamedTextColor.YELLOW))
+                    .append(Component.text("Deaths: ", NamedTextColor.GRAY)).append(Component.text(deaths + "\n", NamedTextColor.YELLOW))
+                    .append(Component.text("K/D: ", NamedTextColor.GRAY)).append(Component.text(String.format("%.3g", kd) + "\n", NamedTextColor.YELLOW))
+                    .append(Component.text("Streaks: ", NamedTextColor.GRAY)).append(Component.text(streaks + "\n", NamedTextColor.YELLOW))
+                    .append(Component.text("Used Perks Amount: ", NamedTextColor.GRAY)).append(Component.text(usedPerks + "\n", NamedTextColor.YELLOW))
+                    .append(Component.text("---------------------------------", NamedTextColor.GRAY));
         }
     }
 

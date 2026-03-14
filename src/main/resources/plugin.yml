@@ -3,6 +3,7 @@ version: '${project.version}'
 main: woolbattle.woolbattle.Main
 authors: [ SimsumMC, Servaturus, Beelzebub ]
 description: A Woolbattle Plugin
+api-version: '1.21'
 commands:
   gstart:
     description: Start the game instantly.
@@ -21,3 +22,6 @@ commands:
     aliases: [ mdef ]
   map:
     aliases: [ m ]
+  setmap:
+    description: Switch the active map (game must not be running).
+    usage: /setmap <mapname>

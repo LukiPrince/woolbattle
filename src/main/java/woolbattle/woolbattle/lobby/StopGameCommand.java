@@ -24,7 +24,8 @@
 
 package woolbattle.woolbattle.lobby;
 
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -43,13 +44,13 @@ public class StopGameCommand implements CommandExecutor {
         if (sender instanceof Player) {
             Player player = (Player) sender;
             if(!player.isOp()){
-                player.sendMessage(ChatColor.RED + "You need OP to use this command!");
+                player.sendMessage(Component.text("You need OP to use this command!", NamedTextColor.RED));
                 return true;
             }
-            if(endGame(ChatColor.YELLOW + "Yellow")){
-                player.sendMessage("§aStopped the game successfully.");
+            if(endGame("\u00A7eYellow")){
+                player.sendMessage(Component.text("Stopped the game successfully.", NamedTextColor.GREEN));
             } else{
-                player.sendMessage(ChatColor.RED + "There is no running game!");
+                player.sendMessage(Component.text("There is no running game!", NamedTextColor.RED));
             }
             return true;
         }

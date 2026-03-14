@@ -36,7 +36,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.material.Colorable;
 import org.bukkit.scheduler.BukkitRunnable;
 import woolbattle.woolbattle.achievements.AchievementSystem;
 import woolbattle.woolbattle.woolsystem.BlockBreakingSystem;
@@ -44,6 +43,7 @@ import woolbattle.woolbattle.woolsystem.BlockBreakingSystem;
 import java.util.ArrayList;
 
 import static woolbattle.woolbattle.team.TeamSystem.findTeamDyeColor;
+import woolbattle.woolbattle.WoolHelper;
 
 public class Listener implements org.bukkit.event.Listener {
 
@@ -68,7 +68,7 @@ public class Listener implements org.bukkit.event.Listener {
         DyeColor teamColor = findTeamDyeColor(p);//Is to be implemented in the team-system, being created
         Inventory inventory = p.getInventory();
         Block block = event.getBlock();
-        ItemStack itemStack = new ItemStack(Material.WOOL, 0, teamColor.getWoolData()){};
+        ItemStack itemStack = new ItemStack(WoolHelper.getWoolMaterial(teamColor), 1);
         Material type = block.getType();
         boolean blockIsMap = false;
         int itemAmount = 0;
@@ -98,33 +98,41 @@ public class Listener implements org.bukkit.event.Listener {
 
                 removedBlocks.add(block.getLocation());
                 BlockBreakingSystem.setRemovedBlocks(removedBlocks);
-                Bukkit.broadcastMessage("Removed Blocks: " + BlockBreakingSystem.locArrayToString(BlockBreakingSystem.getRemovedBlocks()));
             }
 
         }else{
             event.setCancelled(true);
-            if(type.equals(Material.WOOL)){
+            if(WoolHelper.isWool(type)){
 
                 for(ItemStack is : inventory){
                     if(is != null){
-                        itemAmount += is.getType().equals(Material.WOOL)? is.getAmount() : 0;
+                        itemAmount += WoolHelper.isWool(is.getType()) ? is.getAmount() : 0;
                     }
                 }
 
                 itemStack.setType(type);
 
-                if(itemAmount < maxStacks*64){
-                    itemStack.setAmount(givenWoolAmount);
-                    inventory.addItem(itemStack);
-                    Cache.getPassivePerks().values().forEach(perk -> {
-
-                        if(perk.hasPlayer(p)){
-                            perk.functionality(event);
-                        }
-                    });
+                boolean isPlayerPlaced = BlockBreakingSystem.isPlacedBlock(block.getLocation());
+                if (isPlayerPlaced) {
+                    BlockBreakingSystem.removePlacedBlock(block.getLocation());
                 }
 
-                Colorable data = (Colorable) block.getState().getData();
+                if(itemAmount < maxStacks*64){
+                    if (isPlayerPlaced) {
+                        itemStack.setAmount(1);
+                        inventory.addItem(itemStack);
+                    } else {
+                        itemStack.setAmount(givenWoolAmount);
+                        inventory.addItem(itemStack);
+                        Cache.getPassivePerks().values().forEach(perk -> {
+                            if(perk.hasPlayer(p)){
+                                perk.functionality(event);
+                            }
+                        });
+                    }
+                }
+
+                Material blockMaterial = block.getType();
                 block.setType(Material.AIR);
 
                 if(blockIsMap){
@@ -132,8 +140,7 @@ public class Listener implements org.bukkit.event.Listener {
                     new BukkitRunnable(){
                         @Override
                         public void run() {
-                            block.setType(Material.WOOL);
-                            block.setData(data.getColor().getWoolData());
+                            block.setType(blockMaterial);
                         }
                     }.runTaskLater(Main.getInstance(), delayInTicks);
                 }
@@ -143,7 +150,7 @@ public class Listener implements org.bukkit.event.Listener {
 
     @EventHandler
     public void onPlayerItemDamage(PlayerItemDamageEvent event) {
-        event.getItem().setDurability(event.getItem().getType().getMaxDurability());
+        event.setCancelled(true);
     }
 
     /**
@@ -162,7 +169,6 @@ public class Listener implements org.bukkit.event.Listener {
             BlockBreakingSystem.setMapBlocks(mapBlocks);
             ArrayList<Location> removedBlocks = BlockBreakingSystem.getRemovedBlocks();
             removedBlocks.remove(event.getBlock().getLocation());
-            Bukkit.broadcastMessage(BlockBreakingSystem.locArrayToString(mapBlocks) + "\n" + BlockBreakingSystem.locArrayToString(removedBlocks));
         }
     }
 

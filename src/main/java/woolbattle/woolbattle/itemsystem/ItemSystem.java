@@ -26,8 +26,9 @@ package woolbattle.woolbattle.itemsystem;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bson.Document;
-import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
@@ -37,8 +38,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.material.Wool;
 import org.bukkit.scheduler.BukkitRunnable;
+import woolbattle.woolbattle.WoolHelper;
 import woolbattle.woolbattle.Cache;
 import woolbattle.woolbattle.Main;
 import woolbattle.woolbattle.lobby.LobbySystem;
@@ -174,34 +175,17 @@ public class ItemSystem {
             LeatherArmorMeta meta = (LeatherArmorMeta) armorStacks.get(index);
             meta.setColor(color);
 
-            ItemStack armorPiece = new ItemStack(){
-                {
-                    switch(index){
-                        case 0:
-                            this.setType(Material.LEATHER_BOOTS);
-                            meta.setDisplayName(ChatColor.AQUA + "Leather Boots");
-                            break;
-                        case 1:
-                            this.setType(Material.LEATHER_LEGGINGS);
-                            meta.setDisplayName(ChatColor.AQUA + "Leather Leggings");
-                            break;
-                        case 2:
-                            this.setType(Material.LEATHER_CHESTPLATE);
-                            meta.setDisplayName(ChatColor.AQUA + "Leather Chestplate");
-                            break;
-                        case 3:
-                            this.setType(Material.LEATHER_HELMET);
-                            meta.setDisplayName(ChatColor.AQUA + "Leather Helmet");
-                            break;
-
-                    }
-                    setItemMeta(meta);
-                    ((LeatherArmorMeta) getItemMeta()).setColor(color);
-                    meta.spigot().setUnbreakable(true);
-                    setItemMeta(meta);
-                    setAmount(1);
-                }
-            };
+            Material armorMaterial;
+            switch(index){
+                case 0: armorMaterial = Material.LEATHER_BOOTS; meta.displayName(Component.text("Leather Boots", NamedTextColor.AQUA)); break;
+                case 1: armorMaterial = Material.LEATHER_LEGGINGS; meta.displayName(Component.text("Leather Leggings", NamedTextColor.AQUA)); break;
+                case 2: armorMaterial = Material.LEATHER_CHESTPLATE; meta.displayName(Component.text("Leather Chestplate", NamedTextColor.AQUA)); break;
+                case 3: armorMaterial = Material.LEATHER_HELMET; meta.displayName(Component.text("Leather Helmet", NamedTextColor.AQUA)); break;
+                default: armorMaterial = Material.LEATHER_BOOTS; break;
+            }
+            meta.setUnbreakable(true);
+            ItemStack armorPiece = new ItemStack(armorMaterial, 1);
+            armorPiece.setItemMeta(meta);
             armorPiece.setAmount(1);
             switch(index){
                 case 0:
@@ -239,7 +223,7 @@ public class ItemSystem {
         int existingWoolAmount = 0;
 
         for(ItemStack iterStack : inv.getContents()){
-            if(iterStack != null && iterStack.getType().equals(Material.WOOL)){
+            if(iterStack != null && WoolHelper.isWool(iterStack.getType())){
                 existingWoolAmount += iterStack.getAmount();
             }
         }
@@ -254,21 +238,21 @@ public class ItemSystem {
         DyeColor color = findTeamDyeColor(player);
 
         for(ItemStack is : inv.getContents()){
-            if(is != null && is.getType().equals(Material.WOOL)){
+            if(is != null && WoolHelper.isWool(is.getType())){
                 woolAmount += is.getAmount();
             }
         }
         if(woolAmount - subtractWool ==0){
-            player.getInventory().remove(Material.WOOL);
+            WoolHelper.removeAllWool(player.getInventory());
             return true;
         }
         woolAmount = woolAmount - subtractWool;
 
         int modulo = woolAmount%64;
 
-        inv.remove(Material.WOOL);
+        WoolHelper.removeAllWool(inv);
 
-        ItemStack woolInstance =  new Wool(color).toItemStack();
+        ItemStack woolInstance = new ItemStack(WoolHelper.getWoolMaterial(color));
 
         if(woolAmount%64 !=0){
             ItemStack wool = new ItemStack(woolInstance);
@@ -306,10 +290,10 @@ public class ItemSystem {
             @Override
             public void run() {
 
-                ItemStack expiredItem = new ItemStack(Material.SULPHUR){
+                ItemStack expiredItem = new ItemStack(Material.GUNPOWDER){
                     {
                         ItemMeta meta = getItemMeta();
-                        meta.setDisplayName(ChatColor.RED + "Item on Cooldown");
+                        meta.displayName(Component.text("Item on Cooldown", NamedTextColor.RED));
                         setItemMeta(meta);
                     }
                 };

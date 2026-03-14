@@ -1,8 +1,9 @@
 package woolbattle.woolbattle.woolsystem;
 
 import java.util.Locale;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -11,12 +12,12 @@ import org.bukkit.command.CommandSender;
 import static java.lang.String.format;
 
 public class BlockRegistrationCommand implements CommandExecutor {
-    private final String syntax = ChatColor.GREEN + "\nProper syntax: <blockregistration> <<init/terminate>||range> < || 6*<int> ";
+    private final Component syntax = Component.text("\nProper syntax: <blockregistration> <<init/terminate>||range> < || 6*<int> ", NamedTextColor.GREEN);
 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length < 1) {
-            sender.sendMessage("§cThe specified number of arguments is too little, than it would be necessary for the" +
-                    "command to work properly." + syntax
+            sender.sendMessage(Component.text("The specified number of arguments is too little, than it would be necessary for the" +
+                    "command to work properly.", NamedTextColor.RED).append(syntax)
             );
             return false;
         }
@@ -24,10 +25,11 @@ public class BlockRegistrationCommand implements CommandExecutor {
             case "init":
                 if (!BlockBreakingSystem.isCollectBrokenBlocks()) {
                     BlockBreakingSystem.setCollectBrokenBlocks(true);
-                    Bukkit.broadcastMessage("§aThe block-scanning-process was successfully initiated.");
+                    Bukkit.broadcast(Component.text("The block-scanning-process was successfully initiated.", NamedTextColor.GREEN));
                 } else {
-                    sender.sendMessage(ChatColor.RED + "The Block-breaking-system is registering the placed blocks already.\n" +
-                            "If you want to terminate the scan for newly placed blocks, use the argument §a terminate"
+                    sender.sendMessage(Component.text("The Block-breaking-system is registering the placed blocks already.\n" +
+                            "If you want to terminate the scan for newly placed blocks, use the argument", NamedTextColor.RED)
+                            .append(Component.text(" terminate", NamedTextColor.GREEN))
                     );
                 }
 
@@ -36,18 +38,19 @@ public class BlockRegistrationCommand implements CommandExecutor {
 
                 if (BlockBreakingSystem.isCollectBrokenBlocks()) {
                     BlockBreakingSystem.setCollectBrokenBlocks(false);
-                    Bukkit.broadcastMessage("§9The block-scanning-process was successfully terminated.");
+                    Bukkit.broadcast(Component.text("The block-scanning-process was successfully terminated.", NamedTextColor.BLUE));
                 } else {
-                    sender.sendMessage("§cThe Block-breaking-system is currently not registering new blocks, being placed.\n" +
-                            "If you want to begin the registration of newly placed blocks, use the argument §a init"
+                    sender.sendMessage(Component.text("The Block-breaking-system is currently not registering new blocks, being placed.\n" +
+                            "If you want to begin the registration of newly placed blocks, use the argument", NamedTextColor.RED)
+                            .append(Component.text(" init", NamedTextColor.GREEN))
                     );
                 }
                 break;
 
             case "range":
                 if (args.length < 7) {
-                    sender.sendMessage("§cThe specified number of arguments is too little, than it would be necessary for the" +
-                            "command to work properly." + syntax
+                    sender.sendMessage(Component.text("The specified number of arguments is too little, than it would be necessary for the" +
+                            "command to work properly.", NamedTextColor.RED).append(syntax)
                     );
                     return false;
                 }else {
@@ -58,7 +61,7 @@ public class BlockRegistrationCommand implements CommandExecutor {
 
                         BlockBreakingSystem.addBlocksByRange(start, end);
 
-                        sender.sendMessage(ChatColor.GREEN + "Successfully registered all blocks in the given range. [Only Local - use /mapblocks push to put it in the database]");
+                        sender.sendMessage(Component.text("Successfully registered all blocks in the given range. [Only Local - use /mapblocks push to put it in the database]", NamedTextColor.GREEN));
 
                     } catch (NumberFormatException e) {
                         e.printStackTrace();
@@ -66,7 +69,9 @@ public class BlockRegistrationCommand implements CommandExecutor {
                 }
                 break;
             default:
-                sender.sendMessage(format("§5%s§c is not a valid argument, concerning this command. " + syntax, args[0])
+                sender.sendMessage(Component.text(args[0], NamedTextColor.DARK_PURPLE)
+                        .append(Component.text(" is not a valid argument, concerning this command. ", NamedTextColor.RED))
+                        .append(syntax)
                 );
         }
         return false;

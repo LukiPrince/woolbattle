@@ -1,23 +1,28 @@
 package woolbattle.woolbattle.woolsystem;
 
 import com.mongodb.client.MongoDatabase;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bson.Document;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import woolbattle.woolbattle.Config;
+import woolbattle.woolbattle.MapConfig;
 import woolbattle.woolbattle.Main;
+import woolbattle.woolbattle.WoolHelper;
 import java.util.ArrayList;
+import java.util.HashSet;
 import static com.mongodb.client.model.Filters.eq;
 import static java.lang.String.format;
 
 public class BlockBreakingSystem {
 
-    private static final String green = ChatColor.GREEN.toString();
-    private static final String blue = ChatColor.BLUE.toString();
+    private static final NamedTextColor green = NamedTextColor.GREEN;
+    private static final NamedTextColor blue = NamedTextColor.BLUE;
 
     private static ArrayList<Location> mapBlocks = new ArrayList<>();
     private static boolean collectBrokenBlocks = false;
     private static ArrayList<Location> removedBlocks = new ArrayList<>();
+    private static ArrayList<Location> placedBlocks = new ArrayList<>();
 
 
     //Setter and getter, concerning the previously defined private variables
@@ -30,6 +35,19 @@ public class BlockBreakingSystem {
 
     public static ArrayList<Location> getRemovedBlocks() {return removedBlocks;}
     public static void setRemovedBlocks(ArrayList<Location> removedBlocks) {BlockBreakingSystem.removedBlocks = removedBlocks;}
+
+    public static void trackPlacedBlock(Location location) {placedBlocks.add(location);}
+
+    public static boolean isPlacedBlock(Location location) {return placedBlocks.contains(location);}
+
+    public static void removePlacedBlock(Location location) {placedBlocks.remove(location);}
+
+    public static void clearPlacedBlocks() {
+        for (Location loc : placedBlocks) {
+            loc.getBlock().setType(Material.AIR);
+        }
+        placedBlocks.clear();
+    }
 
 
 
@@ -69,12 +87,15 @@ public class BlockBreakingSystem {
         //Iterates over the mapBlocks, present in the db, converts the into valid locations and ultimately add them to a previously created array.
 
 
+        org.bukkit.World gameWorld = (MapConfig.gameWorldName != null && Bukkit.getWorld(MapConfig.gameWorldName) != null)
+                ? Bukkit.getWorld(MapConfig.gameWorldName) : Bukkit.getWorlds().get(0);
+
         for(ArrayList<Double> argArray: (ArrayList<ArrayList<Double>>) Main.getMongoDatabase().getCollection("map").find(eq("_id", "mapBlocks")).first().get("mapBlocks")/*db.getCollection("map").find(eq("_id", "mapBlocks")).first().get("mapBlocks")*/){
             if(argArray.size() == 0){
                 break;
             }else {
                 Location location = new Location(
-                        Bukkit.getWorlds().get(0),
+                        gameWorld,
                         argArray.get(0),
                         argArray.get(1),
                         argArray.get(2)
@@ -132,87 +153,85 @@ public class BlockBreakingSystem {
 
             //Searches for blocks in the array, about to replace the mapBlocks-array in the db, that are present in the removed-blocks-array and deletes them.
 
-            for(ArrayList<Double> locArray : update){
+            update.removeIf(locArray -> {
                 Location loc = new Location(Bukkit.getWorlds().get(0), locArray.get(0), locArray.get(1), locArray.get(2));
-                if(removedBlocks.contains(loc)){
-                    update.remove(locArray);
-                }
-            }
+                return removedBlocks.contains(loc);
+            });
 
             //Replaces the mapBlocksArray in the db with the previously-prepared one (update).
             Main.getMongoDatabase().getCollection("map").replaceOne(eq("_id", "mapBlocks"), new Document("_id", "mapBlocks").append("mapBlocks", update));
     }
 
     /**
-     *  Method, meant to convert an array of locations towards an appropriately coloured string, representing it.
-     * @param locs The ArrayList of locations, meant to be converted into a string.
-     * @return The string, generated according to the input ArrayList of locations.
+     *  Method, meant to convert an array of locations towards an appropriately coloured Component, representing it.
+     * @param locs The ArrayList of locations, meant to be converted into a Component.
+     * @return The Component, generated according to the input ArrayList of locations.
      */
-    public static String locArrayToString(ArrayList<Location> locs){
+    public static Component locArrayToComponent(ArrayList<Location> locs){
 
-        StringBuilder result = new StringBuilder(ChatColor.DARK_PURPLE + "[");
+        Component result = Component.text("[", NamedTextColor.DARK_PURPLE);
 
         if(locs.size() == 0){
-            result.append(format("%s]", ChatColor.DARK_PURPLE));
-            return result.toString();
+            result = result.append(Component.text("]", NamedTextColor.DARK_PURPLE));
+            return result;
         }
         else{
 
             for(int i = 0; i<locs.size(); i++){
 
-                result.append(format("\n%s[%s%f,%f,%f%s]",
-                        green,
-                        blue,
-                        locs.get(i).getX(),
-                        locs.get(i).getY(),
-                        locs.get(i).getZ(),
-                        green
-                ));
+                result = result
+                        .append(Component.text("\n", green))
+                        .append(Component.text("[", green))
+                        .append(Component.text(format("%f,%f,%f",
+                                locs.get(i).getX(),
+                                locs.get(i).getY(),
+                                locs.get(i).getZ()), blue))
+                        .append(Component.text("]", green));
 
                 if(i == (locs.size() -1)){
-                    result.append(format("%s]", ChatColor.DARK_PURPLE));
+                    result = result.append(Component.text("]", NamedTextColor.DARK_PURPLE));
                 }else{
-                    result.append(format("%s,", ChatColor.AQUA));
+                    result = result.append(Component.text(",", NamedTextColor.AQUA));
                 }
 
             }
         }
 
-        return result.toString();
+        return result;
     }
 
     /**
-     *  Method, meant to convert an array of ArrayList of doubles towards an appropriately coloured string, representing it.
-     * @param locs The ArrayList of locations, meant to be converted into a string.
-     * @return The String, corresponding with the specified input ArrayList of ArrayLists of doubles.
+     *  Method, meant to convert an array of ArrayList of doubles towards an appropriately coloured Component, representing it.
+     * @param locs The ArrayList of locations, meant to be converted into a Component.
+     * @return The Component, corresponding with the specified input ArrayList of ArrayLists of doubles.
      */
-    public static String doubleArrArrToString(ArrayList<ArrayList<Double>> locs){
+    public static Component doubleArrArrToComponent(ArrayList<ArrayList<Double>> locs){
 
-        StringBuilder result = new StringBuilder(ChatColor.DARK_PURPLE + "[");
+        Component result = Component.text("[", NamedTextColor.DARK_PURPLE);
 
         if(locs.size() == 0){
-            result.append(format("%s]", ChatColor.DARK_PURPLE));
-            return result.toString();
+            result = result.append(Component.text("]", NamedTextColor.DARK_PURPLE));
+            return result;
         }
         for(int i = 0; i<locs.size(); i++){
 
-            result.append(format("\n%s[%s%f,%f,%f%s]",
-                    green,
-                    blue,
-                    locs.get(i).get(0),
-                    locs.get(i).get(1),
-                    locs.get(i).get(2),
-                    green
-            ));
+            result = result
+                    .append(Component.text("\n", green))
+                    .append(Component.text("[", green))
+                    .append(Component.text(format("%f,%f,%f",
+                            locs.get(i).get(0),
+                            locs.get(i).get(1),
+                            locs.get(i).get(2)), blue))
+                    .append(Component.text("]", green));
 
             if(i == (locs.size() -1)){
-                result.append(format("%s]", ChatColor.DARK_PURPLE));
+                result = result.append(Component.text("]", NamedTextColor.DARK_PURPLE));
             }else{
-                result.append(format("%s,", ChatColor.AQUA));
+                result = result.append(Component.text(",", NamedTextColor.AQUA));
             }
 
         }
-        return result.toString();
+        return result;
     }
 
     /**
@@ -224,7 +243,8 @@ public class BlockBreakingSystem {
      */
     public static void addBlocksByRange(Location a, Location b) {
 
-        World standard = Bukkit.getWorlds().get(0);
+        World standard = (MapConfig.gameWorldName != null && Bukkit.getWorld(MapConfig.gameWorldName) != null)
+                ? Bukkit.getWorld(MapConfig.gameWorldName) : Bukkit.getWorlds().get(0);
 
         int xdiff = (int) a.getX() - (int) b.getX();
         int ydiff = (int) a.getY() - (int) b.getY();
@@ -264,7 +284,7 @@ public class BlockBreakingSystem {
             for(int y : ys){
                 for(int z : zs){
 
-                    if(new Location(standard, x, y, z).getBlock().getType().equals(Material.WOOL)){
+                    if(WoolHelper.isWool(new Location(standard, x, y, z).getBlock().getType())){
                         locs.add(new Location(standard, x, y, z));
                     }
                 }
@@ -297,16 +317,17 @@ public class BlockBreakingSystem {
             return;
         }
         World world = Bukkit.getWorlds().get(0);
+        HashSet<Location> mapBlocksSet = new HashSet<>(mapBlocks);
         for(ArrayList<Long> chunkCoords : mapChunks){
             Chunk chunk = world.getChunkAt( (int) (long) chunkCoords.get(0), (int) (long) chunkCoords.get(1));
             for(int x = 0;x<16;x++){
-                for(int y = 0; y< Config.maxHeight; y++){
+                for(int y = 0; y< MapConfig.maxHeight; y++){
                     for(int z = 0; z<16;z++){
                         Block block = chunk.getBlock(x,y,z);
-                        if(!block.getType().equals(Material.WOOL)){
+                        if(!WoolHelper.isWool(block.getType())){
                             continue;
                         }
-                        if(mapBlocks.contains(block.getLocation())){
+                        if(mapBlocksSet.contains(block.getLocation())){
                             continue;
                         }
 

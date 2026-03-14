@@ -26,9 +26,10 @@ package woolbattle.woolbattle.achievements;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bson.Document;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -37,6 +38,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import woolbattle.woolbattle.Main;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static com.mongodb.client.model.Filters.eq;
 
@@ -50,12 +52,12 @@ public class AchievementUI {
         MongoDatabase db = Main.getMongoDatabase();
         MongoCollection<Document> collection = db.getCollection("playerAchievements");
         ArrayList<String> arrayList = (ArrayList<String>) collection.find(eq("_id", player.getUniqueId().toString())).first().get("achievements");
-        Inventory achievements = Bukkit.createInventory(null, 27, ChatColor.GOLD + "Achievements");
+        Inventory achievements = Bukkit.createInventory(null, 27, Component.text("Achievements", NamedTextColor.GOLD));
 
         //adding glass
-        ItemStack Glass = new ItemStack(Material.STAINED_GLASS_PANE, 1, (byte) 15);
+        ItemStack Glass = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta GlassMeta = Glass.getItemMeta();
-        GlassMeta.setDisplayName(" ");
+        GlassMeta.displayName(Component.text(" "));
         Glass.setItemMeta(GlassMeta);
         for (int i = 0; i <= 26; i++) {
             achievements.setItem(i, Glass);
@@ -66,99 +68,99 @@ public class AchievementUI {
         if (arrayList.contains("fullwool")) {fullwoolMat = Material.DIAMOND;}
         ItemStack fullwool = new ItemStack(fullwoolMat);
         ItemMeta fullwoolmeta = fullwool.getItemMeta();
-        ArrayList<String> fullwoolLore = new ArrayList<>();
+        List<Component> fullwoolLore = new ArrayList<>();
 
-        fullwoolLore.add(ChatColor.WHITE + "Have the maximum amount of wool in your inventory");
-        fullwoolLore.add(" ");
+        fullwoolLore.add(Component.text("Have the maximum amount of wool in your inventory", NamedTextColor.WHITE));
+        fullwoolLore.add(Component.text(" "));
         if (fullwoolMat == Material.COAL) {
-            fullwoolLore.add(ChatColor.RED + "Not Completed");
+            fullwoolLore.add(Component.text("Not Completed", NamedTextColor.RED));
         }
         else {
-            fullwoolLore.add(ChatColor.GREEN + "Completed");
+            fullwoolLore.add(Component.text("Completed", NamedTextColor.GREEN));
         }
-        fullwoolmeta.setDisplayName("§6Strategist");
-        fullwoolmeta.setLore(fullwoolLore);
+        fullwoolmeta.displayName(Component.text("Strategist", NamedTextColor.GOLD));
+        fullwoolmeta.lore(fullwoolLore);
         fullwool.setItemMeta(fullwoolmeta);
         achievements.setItem(13, fullwool);
 
         //adding Killstreak 5 achievement
         Material killstreak5Mat = Material.COAL;
         if (arrayList.contains("killstreak5")) {killstreak5Mat = Material.DIAMOND;}
-        ItemStack Killstreak5 = new ItemStack(killstreak5Mat, 1, (byte)1);
+        ItemStack Killstreak5 = new ItemStack(killstreak5Mat);
         ItemMeta Killstreak5meta = Killstreak5.getItemMeta();
-        ArrayList<String> Killstreak5Lore = new ArrayList<>();
+        List<Component> Killstreak5Lore = new ArrayList<>();
 
-        Killstreak5Lore.add(ChatColor.WHITE + "Get a Killstreak of 5 in one game");
-        Killstreak5Lore.add(" ");
+        Killstreak5Lore.add(Component.text("Get a Killstreak of 5 in one game", NamedTextColor.WHITE));
+        Killstreak5Lore.add(Component.text(" "));
         if (killstreak5Mat == Material.COAL) {
-            Killstreak5Lore.add(ChatColor.RED + "Not Completed");
+            Killstreak5Lore.add(Component.text("Not Completed", NamedTextColor.RED));
         }
         else {
-            Killstreak5Lore.add(ChatColor.GREEN + "Completed");
+            Killstreak5Lore.add(Component.text("Completed", NamedTextColor.GREEN));
         }
-        Killstreak5meta.setDisplayName("§6Dominator");
-        Killstreak5meta.setLore(Killstreak5Lore);
+        Killstreak5meta.displayName(Component.text("Dominator", NamedTextColor.GOLD));
+        Killstreak5meta.lore(Killstreak5Lore);
         Killstreak5.setItemMeta(Killstreak5meta);
         achievements.setItem(14, Killstreak5);
 
         //adding closeCall achievement
         Material closeCallMat = Material.COAL;
         if (arrayList.contains("closeCall")) {closeCallMat = Material.DIAMOND;}
-        ItemStack closeCall = new ItemStack(closeCallMat, 1, (byte)1);
+        ItemStack closeCall = new ItemStack(closeCallMat);
         ItemMeta closeCallMeta = closeCall.getItemMeta();
-        ArrayList<String> closeCallLore = new ArrayList<>();
+        List<Component> closeCallLore = new ArrayList<>();
 
-        closeCallLore.add(ChatColor.WHITE + "Win a game of Woolbattle while only having a single life left");
-        closeCallLore.add(" ");
+        closeCallLore.add(Component.text("Win a game of Woolbattle while only having a single life left", NamedTextColor.WHITE));
+        closeCallLore.add(Component.text(" "));
         if (closeCallMat == Material.COAL) {
-            closeCallLore.add(ChatColor.RED + "Not Completed");
+            closeCallLore.add(Component.text("Not Completed", NamedTextColor.RED));
         }
         else {
-            closeCallLore.add(ChatColor.GREEN + "Completed");
+            closeCallLore.add(Component.text("Completed", NamedTextColor.GREEN));
         }
-        closeCallMeta.setDisplayName("§6Close Call");
-        closeCallMeta.setLore(closeCallLore);
+        closeCallMeta.displayName(Component.text("Close Call", NamedTextColor.GOLD));
+        closeCallMeta.lore(closeCallLore);
         closeCall.setItemMeta(closeCallMeta);
         achievements.setItem(12, closeCall);
 
         //adding losing achievement
         Material losingMat = Material.COAL;
         if (arrayList.contains("losing")) {losingMat = Material.DIAMOND;}
-        ItemStack losing = new ItemStack(losingMat, 1, (byte)1);
+        ItemStack losing = new ItemStack(losingMat);
         ItemMeta losingMeta = losing.getItemMeta();
-        ArrayList<String> losingLore = new ArrayList<>();
+        List<Component> losingLore = new ArrayList<>();
 
-        losingLore.add(ChatColor.WHITE + "Lose a game of Woolbattle without having a single Kill");
-        losingLore.add(" ");
+        losingLore.add(Component.text("Lose a game of Woolbattle without having a single Kill", NamedTextColor.WHITE));
+        losingLore.add(Component.text(" "));
         if (losingMat == Material.COAL) {
-            losingLore.add(ChatColor.RED + "Not Completed");
+            losingLore.add(Component.text("Not Completed", NamedTextColor.RED));
         }
         else {
-            losingLore.add(ChatColor.GREEN + "Completed");
+            losingLore.add(Component.text("Completed", NamedTextColor.GREEN));
         }
-        losingMeta.setDisplayName("§6Losing is the new winning");
-        losingMeta.setLore(losingLore);
+        losingMeta.displayName(Component.text("Losing is the new winning", NamedTextColor.GOLD));
+        losingMeta.lore(losingLore);
         losing.setItemMeta(losingMeta);
         achievements.setItem(15, losing);
 
         //adding carried achievement
         Material carriedMat = Material.COAL;
         if (arrayList.contains("carried")) {carriedMat = Material.DIAMOND;}
-        ItemStack carried = new ItemStack(carriedMat, 1, (byte)1);
+        ItemStack carried = new ItemStack(carriedMat);
         ItemMeta carriedMeta = carried.getItemMeta();
-        ArrayList<String> carriedLore = new ArrayList<>();
+        List<Component> carriedLore = new ArrayList<>();
 
-        carriedLore.add(ChatColor.WHITE + "Have someone else fight the battle for you - in other words,");
-        carriedLore.add(ChatColor.WHITE + "win a game of Woolbattle without having a single kill");
-        carriedLore.add(" ");
+        carriedLore.add(Component.text("Have someone else fight the battle for you - in other words,", NamedTextColor.WHITE));
+        carriedLore.add(Component.text("win a game of Woolbattle without having a single kill", NamedTextColor.WHITE));
+        carriedLore.add(Component.text(" "));
         if (carriedMat == Material.COAL) {
-            carriedLore.add(ChatColor.RED + "Not Completed");
+            carriedLore.add(Component.text("Not Completed", NamedTextColor.RED));
         }
         else {
-            carriedLore.add(ChatColor.GREEN + "Completed");
+            carriedLore.add(Component.text("Completed", NamedTextColor.GREEN));
         }
-        carriedMeta.setDisplayName("§6The British way");
-        carriedMeta.setLore(carriedLore);
+        carriedMeta.displayName(Component.text("The British way", NamedTextColor.GOLD));
+        carriedMeta.lore(carriedLore);
         carried.setItemMeta(carriedMeta);
         achievements.setItem(11, carried);
 

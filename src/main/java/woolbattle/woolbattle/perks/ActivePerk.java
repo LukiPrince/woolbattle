@@ -26,10 +26,11 @@ package woolbattle.woolbattle.perks;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bson.Document;
 import org.bukkit.Bukkit;
-import org.bukkit.Instrument;
-import org.bukkit.Note;
+import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -57,7 +58,8 @@ public class ActivePerk {
 
     public ActivePerk(ItemStack itemStack, int cooldown, int woolCost, boolean useOnExecute, boolean selectable) {
         this.itemStack = itemStack;
-        this.itemName = itemStack.getItemMeta().getDisplayName();
+        Component displayName = itemStack.getItemMeta().displayName();
+        this.itemName = displayName != null ? PlainTextComponentSerializer.plainText().serialize(displayName) : "";
         this.useOnExecute = useOnExecute;
         this.cooldown = cooldown;
         this.woolCost = woolCost;
@@ -66,7 +68,8 @@ public class ActivePerk {
 
     public ActivePerk(ItemStack itemStack, int cooldown, int woolCost, boolean useOnExecute) {
         this.itemStack = itemStack;
-        this.itemName = itemStack.getItemMeta().getDisplayName();
+        Component displayName = itemStack.getItemMeta().displayName();
+        this.itemName = displayName != null ? PlainTextComponentSerializer.plainText().serialize(displayName) : "";
         this.useOnExecute = useOnExecute;
         this.cooldown = cooldown;
         this.woolCost = woolCost;
@@ -102,11 +105,11 @@ public class ActivePerk {
         return this;
     }
 
-    public ActivePerk setItemName(String name){
+    public ActivePerk setItemName(Component name){
         ItemMeta itemMeta = itemStack.getItemMeta();
-        itemMeta.setDisplayName(name);
+        itemMeta.displayName(name);
         itemStack.setItemMeta(itemMeta);
-        itemName = name;
+        itemName = PlainTextComponentSerializer.plainText().serialize(name);
         return this;
     }
 
@@ -129,7 +132,7 @@ public class ActivePerk {
 
     public void register(){
         HashMap<String, ActivePerk> activePerks = Cache.getActivePerks();
-        activePerks.put(itemName.substring(2), this);
+        activePerks.put(itemName, this);
         Cache.setActivePerks(activePerks);
     }
 
@@ -142,8 +145,8 @@ public class ActivePerk {
 
         if(!subtractWool(player, woolCost)){
             event.setCancelled(true);
-            player.playNote(player.getLocation(), Instrument.PIANO, Note.flat(1, Note.Tone.C));
-            player.playNote(player.getLocation(), Instrument.PIANO, Note.flat(1, Note.Tone.B));
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.5f);
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.4f);
             return;
         }
 
@@ -164,7 +167,7 @@ public class ActivePerk {
      * @author SimsumMC
      */
     public int getSlotCache(Player player) {
-        String activePerkName = this.itemName.substring(2);
+        String activePerkName = this.itemName;
 
         HashMap<Player, HashMap<String, Integer>> activePerkSlots = Cache.getActivePerkSlots();
 
@@ -181,7 +184,7 @@ public class ActivePerk {
      * @author SimsumMC
      */
     private int getSlotDB(Player player){
-        String activePerkName = this.itemName.substring(2);
+        String activePerkName = this.itemName;
 
         MongoDatabase database = Main.getMongoDatabase();
 

@@ -24,7 +24,8 @@
 
 package woolbattle.woolbattle.lobby;
 
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -43,13 +44,13 @@ public class StartGameCommand implements CommandExecutor {
         if (sender instanceof Player) {
             Player player = (Player) sender;
             if(!player.isOp()){
-                player.sendMessage(ChatColor.RED + "You need OP to use this command!");
+                player.sendMessage(Component.text("You need OP to use this command!", NamedTextColor.RED));
                 return true;
             }
             if (startGame()){
-                player.sendMessage(ChatColor.GREEN + "Started the game.");
+                player.sendMessage(Component.text("Started the game.", NamedTextColor.GREEN));
             } else{
-                player.sendMessage(ChatColor.RED + "The game has already been started!");
+                player.sendMessage(Component.text("The game has already been started!", NamedTextColor.RED));
             }
             return true;
         }

@@ -26,7 +26,9 @@ package woolbattle.woolbattle.lives;
 
 import org.bukkit.Bukkit;
 
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -37,6 +39,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import woolbattle.woolbattle.Cache;
 import woolbattle.woolbattle.Config;
+import woolbattle.woolbattle.MapConfig;
 import woolbattle.woolbattle.achievements.AchievementSystem;
 import woolbattle.woolbattle.team.TeamSystem;
 import woolbattle.woolbattle.lobby.LobbySystem;
@@ -59,19 +62,19 @@ public class LivesSystem implements Listener {
 
         switch(team){
             case "Blue":
-                player.teleport(Config.blueLocation);
+                player.teleport(MapConfig.blueLocation);
                 break;
             case "Red":
-                player.teleport(Config.redLocation);
+                player.teleport(MapConfig.redLocation);
                 break;
             case "Green":
-                player.teleport(Config.greenLocation);
+                player.teleport(MapConfig.greenLocation);
                 break;
             case "Yellow":
-                player.teleport(Config.yellowLocation);
+                player.teleport(MapConfig.yellowLocation);
                 break;
             default:
-                player.teleport(Config.midLocation);
+                player.teleport(MapConfig.midLocation);
                 break;
         }
     }
@@ -111,7 +114,7 @@ public class LivesSystem implements Listener {
 
         long unixTime = System.currentTimeMillis() / 1000L;
 
-        if (player.getLocation().getY() <= Config.minHeight) {
+        if (player.getLocation().getY() <= MapConfig.minHeight) {
             resetEnderPearls(player);
             if (lastDamage.containsKey(player)) {
                 long realLastDamage = lastDamage.get(player);
@@ -129,11 +132,15 @@ public class LivesSystem implements Listener {
                 playerDuels.remove(otherPlayer);
                 Cache.setPlayerDuels(playerDuels);
 
-                String otherPlayerName = getTeamColour(getPlayerTeam(otherPlayer, true)) + otherPlayer.getDisplayName();
-                String playerName = getTeamColour(getPlayerTeam(player, true)) + player.getDisplayName();
+                TextColor otherPlayerColor = getTeamColour(getPlayerTeam(otherPlayer, true));
+                TextColor playerColor = getTeamColour(getPlayerTeam(player, true));
 
-                player.sendMessage(ChatColor.GOLD + "You are now in a duel with " + otherPlayerName + ChatColor.GOLD + "!");
-                otherPlayer.sendMessage(ChatColor.GOLD + "You are now in a duel with " + playerName + ChatColor.GOLD + "!");
+                player.sendMessage(Component.text("You are now in a duel with ", NamedTextColor.GOLD)
+                        .append(Component.text(otherPlayer.getName(), otherPlayerColor))
+                        .append(Component.text("!", NamedTextColor.GOLD)));
+                otherPlayer.sendMessage(Component.text("You are now in a duel with ", NamedTextColor.GOLD)
+                        .append(Component.text(player.getName(), playerColor))
+                        .append(Component.text("!", NamedTextColor.GOLD)));
             }
 
             String team = TeamSystem.getPlayerTeam(player, true);
@@ -175,12 +182,14 @@ public class LivesSystem implements Listener {
                 Cache.setLastDamage(lastDamage);
 
                 String damagerTeam = TeamSystem.getPlayerTeam((Player) damager, true);
-                ChatColor damagerTeamColour = TeamSystem.getTeamColour(damagerTeam) ;
-                String killMessage = ChatColor.GRAY + "The player " + TeamSystem.getTeamColour(team)
-                        + player.getDisplayName() + ChatColor.GRAY + " was killed by " +
-                        damagerTeamColour + ((Player) damager).getDisplayName() + ChatColor.GRAY + ".";
+                TextColor damagerTeamColour = TeamSystem.getTeamColour(damagerTeam);
+                Component killMessage = Component.text("The player ", NamedTextColor.GRAY)
+                        .append(Component.text(player.getName(), TeamSystem.getTeamColour(team)))
+                        .append(Component.text(" was killed by ", NamedTextColor.GRAY))
+                        .append(Component.text(((Player) damager).getName(), damagerTeamColour))
+                        .append(Component.text(".", NamedTextColor.GRAY));
 
-                Bukkit.broadcastMessage(killMessage);
+                Bukkit.broadcast(killMessage);
                 HashMap<String, HashMap<Player, Integer>> killStreaks = Cache.getKillStreaks();
 
                 HashMap<Player, Integer> kills = killStreaks.get(damagerTeam);
@@ -203,9 +212,10 @@ public class LivesSystem implements Listener {
 
                     AchievementSystem.giveKillstreak5((Player) damager);
 
-                    String streakMessage = ChatColor.GRAY + "The player " + damagerTeamColour +
-                            ((Player) damager).getDisplayName() + ChatColor.GRAY + " has a 5er kill streak!";
-                    Bukkit.broadcastMessage(streakMessage);
+                    Component streakMessage = Component.text("The player ", NamedTextColor.GRAY)
+                            .append(Component.text(((Player) damager).getName(), damagerTeamColour))
+                            .append(Component.text(" has a 5er kill streak!", NamedTextColor.GRAY));
+                    Bukkit.broadcast(streakMessage);
 
                     kills.put((Player) damager, 0);
 

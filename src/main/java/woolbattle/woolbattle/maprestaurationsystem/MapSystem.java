@@ -73,7 +73,6 @@ public class MapSystem {
                 iterChunk.add(i);
                 iterChunk.add(j);
                 result.add(iterChunk);
-                Bukkit.broadcastMessage("[" + i + ", " + j + "]");
             }
         }
         return result;

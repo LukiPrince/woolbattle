@@ -24,6 +24,9 @@
 
 package woolbattle.woolbattle.team;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.*;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
@@ -57,7 +60,7 @@ public class TeamSystem implements Listener {
 
         for (int i = Bukkit.getOnlinePlayers().size() - 1; i>=0; i--) {
             Player player = onlinePlayers.get(i);
-            if (TeamSystem.getPlayerTeam(player, true).equals("§cNot selected")) {
+            if (TeamSystem.getPlayerTeam(player, true).equals("Not selected")) {
                 teamLessPlayers.add(player);
             }
         }
@@ -80,16 +83,16 @@ public class TeamSystem implements Listener {
             switch (smallestNumber){
                 case 0:
                     (getTeamMembers().get("Red")).add(teamLessPlayers.get(i));
-                    teamLessPlayers.get(i).sendMessage(ChatColor.GRAY + "You didn't enter a team so you were put into team " + ChatColor.RED + "red" + ChatColor.GRAY + "!");
+                    teamLessPlayers.get(i).sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("red", NamedTextColor.RED)).append(Component.text("!", NamedTextColor.GRAY)));
                     break;
                 case 1: (getTeamMembers().get("Blue")).add(teamLessPlayers.get(i));
-                    teamLessPlayers.get(i).sendMessage(ChatColor.GRAY + "You didn't enter a team so you were put into team " + ChatColor.DARK_BLUE + "blue" + ChatColor.GRAY + "!");
+                    teamLessPlayers.get(i).sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("blue", NamedTextColor.DARK_BLUE)).append(Component.text("!", NamedTextColor.GRAY)));
                     break;
                 case 2: (getTeamMembers().get("Green")).add(teamLessPlayers.get(i));
-                    teamLessPlayers.get(i).sendMessage(ChatColor.GRAY + "You didn't enter a team so you were put into team " + ChatColor.DARK_GREEN + "green" + ChatColor.GRAY + "!");
+                    teamLessPlayers.get(i).sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("green", NamedTextColor.DARK_GREEN)).append(Component.text("!", NamedTextColor.GRAY)));
                     break;
                 case 3: (getTeamMembers().get("Yellow")).add(teamLessPlayers.get(i));
-                    teamLessPlayers.get(i).sendMessage(ChatColor.GRAY + "You didn't enter a team so you were put into team " + ChatColor.YELLOW + "yellow" + ChatColor.GRAY + "!");
+                    teamLessPlayers.get(i).sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("yellow", NamedTextColor.YELLOW)).append(Component.text("!", NamedTextColor.GRAY)));
                     break;
             }
             teamLessPlayers.remove(teamLessPlayers.get(i));
@@ -155,12 +158,12 @@ public class TeamSystem implements Listener {
      * @author Beelzebub
      */
     public static void showTeamSelectionInventory(Player player) {
-        Inventory voting = Bukkit.createInventory(null, 27, ChatColor.YELLOW + "Team Selecting");
+        Inventory voting = Bukkit.createInventory(null, 27, Component.text("Team Selecting", NamedTextColor.YELLOW));
 
         //adding glass
-        ItemStack Glass = new ItemStack(Material.STAINED_GLASS_PANE, 1, (byte) 15);
+        ItemStack Glass = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta GlassMeta = Glass.getItemMeta();
-        GlassMeta.setDisplayName(" ");
+        GlassMeta.displayName(Component.text(" "));
         Glass.setItemMeta(GlassMeta);
 
         for (int i = 0; i <= 26; i++) {
@@ -168,54 +171,54 @@ public class TeamSystem implements Listener {
         }
 
         // Adding the "Vote for red" item
-        ItemStack voteRed = new ItemStack(Material.WOOL, 1, (byte) 14);
-        ArrayList<String> voteRedLore = new ArrayList<>();
+        ItemStack voteRed = new ItemStack(Material.RED_WOOL);
+        ArrayList<Component> voteRedLore = new ArrayList<>();
         ItemMeta voteRedMeta = voteRed.getItemMeta();
         for (int i = getTeamMembers().get("Red").size() - 1; i >= 0; i--) {
-            voteRedLore.add(ChatColor.GRAY + "» " + getTeamMembers().get("Red").get(i).getDisplayName());
+            voteRedLore.add(Component.text("» " + getTeamMembers().get("Red").get(i).getName(), NamedTextColor.GRAY));
         }
 
-        voteRedMeta.setDisplayName(ChatColor.RED + "Team Red");
-        voteRedMeta.setLore(voteRedLore);
+        voteRedMeta.displayName(Component.text("Team Red", NamedTextColor.RED));
+        voteRedMeta.lore(voteRedLore);
         voteRed.setItemMeta(voteRedMeta);
         voting.setItem(11, voteRed);
 
         // Adding the "Vote for blue" item
-        ItemStack voteBlue = new ItemStack(Material.WOOL, 1, (byte) 11);
-        ArrayList<String> voteBlueLore = new ArrayList<>();
+        ItemStack voteBlue = new ItemStack(Material.BLUE_WOOL);
+        ArrayList<Component> voteBlueLore = new ArrayList<>();
         ItemMeta voteBlueMeta = voteBlue.getItemMeta();
         for (int i = getTeamMembers().get("Blue").size() - 1; i >= 0; i--) {
-            voteBlueLore.add(ChatColor.GRAY + "» " + getTeamMembers().get("Blue").get(i).getDisplayName());
+            voteBlueLore.add(Component.text("» " + getTeamMembers().get("Blue").get(i).getName(), NamedTextColor.GRAY));
         }
 
-        voteBlueMeta.setDisplayName(ChatColor.BLUE + "Team Blue");
-        voteBlueMeta.setLore(voteBlueLore);
+        voteBlueMeta.displayName(Component.text("Team Blue", NamedTextColor.BLUE));
+        voteBlueMeta.lore(voteBlueLore);
         voteBlue.setItemMeta(voteBlueMeta);
         voting.setItem(12, voteBlue);
 
         // Adding the "Vote for Green" item
-        ItemStack voteGreen = new ItemStack(Material.WOOL, 1, (byte) 5);
-        ArrayList<String> voteGreenLore = new ArrayList<>();
+        ItemStack voteGreen = new ItemStack(Material.LIME_WOOL);
+        ArrayList<Component> voteGreenLore = new ArrayList<>();
         ItemMeta voteGreenMeta = voteGreen.getItemMeta();
         for (int i = getTeamMembers().get("Green").size() - 1; i >= 0; i--) {
-            voteGreenLore.add(ChatColor.GRAY + "» " + getTeamMembers().get("Green").get(i).getDisplayName());
+            voteGreenLore.add(Component.text("» " + getTeamMembers().get("Green").get(i).getName(), NamedTextColor.GRAY));
         }
 
-        voteGreenMeta.setDisplayName(ChatColor.GREEN + "Team Green");
-        voteGreenMeta.setLore(voteGreenLore);
+        voteGreenMeta.displayName(Component.text("Team Green", NamedTextColor.GREEN));
+        voteGreenMeta.lore(voteGreenLore);
         voteGreen.setItemMeta(voteGreenMeta);
         voting.setItem(14, voteGreen);
 
         // Adding the "Vote for Yellow" item
-        ItemStack voteYellow = new ItemStack(Material.WOOL, 1, (byte) 4);
-        ArrayList<String> voteYellowLore = new ArrayList<>();
+        ItemStack voteYellow = new ItemStack(Material.YELLOW_WOOL);
+        ArrayList<Component> voteYellowLore = new ArrayList<>();
         ItemMeta voteYellowMeta = voteYellow.getItemMeta();
         for (int i = getTeamMembers().get("Yellow").size() - 1; i >= 0; i--) {
-            voteYellowLore.add(ChatColor.GRAY + "» " + getTeamMembers().get("Yellow").get(i).getDisplayName());
+            voteYellowLore.add(Component.text("» " + getTeamMembers().get("Yellow").get(i).getName(), NamedTextColor.GRAY));
         }
 
-        voteYellowMeta.setDisplayName(ChatColor.YELLOW + "Team Yellow");
-        voteYellowMeta.setLore(voteYellowLore);
+        voteYellowMeta.displayName(Component.text("Team Yellow", NamedTextColor.YELLOW));
+        voteYellowMeta.lore(voteYellowLore);
         voteYellow.setItemMeta(voteYellowMeta);
         voting.setItem(15, voteYellow);
 
@@ -238,19 +241,19 @@ public class TeamSystem implements Listener {
             Player player = (Player) event.getEntity();
             if(playerDuels.containsKey(player) && (playerDuels.get(player) != event.getDamager())){
                 event.setCancelled(true);
-                String duelPlayerName = getTeamColour(getPlayerTeam(playerDuels.get(player), true)) +
-                        ((Player) event.getEntity()).getDisplayName();
-                event.getDamager().sendMessage(ChatColor.RED + "This player is in a duel with " +
-                        duelPlayerName + ChatColor.RED + "!");
+                Component duelPlayerName = Component.text(((Player) event.getEntity()).getName(),
+                        getTeamColour(getPlayerTeam(playerDuels.get(player), true)));
+                event.getDamager().sendMessage(Component.text("This player is in a duel with ", NamedTextColor.RED)
+                        .append(duelPlayerName).append(Component.text("!", NamedTextColor.RED)));
                 return;
             }
             player = (Player) event.getDamager();
             if(playerDuels.containsKey(player) && (playerDuels.get(player) != event.getEntity())){
                 event.setCancelled(true);
-                String duelPlayerName = getTeamColour(getPlayerTeam(playerDuels.get(player), true)) +
-                        ((Player) event.getEntity()).getDisplayName();
-                event.getDamager().sendMessage(ChatColor.RED + "This player is in a duel with " +
-                        duelPlayerName + ChatColor.RED + "!");
+                Component duelPlayerName = Component.text(((Player) event.getEntity()).getName(),
+                        getTeamColour(getPlayerTeam(playerDuels.get(player), true)));
+                event.getDamager().sendMessage(Component.text("This player is in a duel with ", NamedTextColor.RED)
+                        .append(duelPlayerName).append(Component.text("!", NamedTextColor.RED)));
                 return;
             }
         }
@@ -286,7 +289,7 @@ public class TeamSystem implements Listener {
             HashMap<Player, Long> spawnProtection = Cache.getSpawnProtection();
             if(spawnProtection.containsKey(damaged) && (unixTime < spawnProtection.get(damaged))){
                 if(damager.getUniqueId() != damaged.getUniqueId()){
-                    damager.sendMessage("§cThe player has spawn protection!");
+                    damager.sendMessage(Component.text("The player has spawn protection!", NamedTextColor.RED));
                 }
                 event.setCancelled(true);
             }
@@ -297,24 +300,18 @@ public class TeamSystem implements Listener {
      * A Method that returns the team of the player with the colour as a string.
      * @param player the player which team gets returned
      * @param raw a boolean whether the method should return a raw string or a colored one
-     * @return the team name as a string if any, else "§cNot selected"
+     * @return the team name as a string if any, else "Not selected"
      * @author SimsumMC
      */
     public static String getPlayerTeam(Player player, boolean raw) {
 
-        String teamName = ChatColor.RED + "Not selected";
+        String teamName = "Not selected";
         HashMap<String, ArrayList<Player>> data = getTeamMembers();
 
         for(String key : data.keySet()){
             ArrayList<Player> players = data.get(key);
             if(players.contains(player)){
-                if(!raw){
-                    teamName = getTeamColour(key).toString();
-                }
-                else{
-                    teamName = "";
-                }
-                teamName += key;
+                teamName = key;
                 break;
             }
         }
@@ -342,22 +339,19 @@ public class TeamSystem implements Listener {
     }
 
     /**
-     * A Method that returns the team of the player with the colour as a ChatColor Enum.
-     * @param team a S
+     * A Method that returns the team of the player with the colour as a TextColor.
+     * @param team a String representing the team name
      * @return the colour of the team
      * @author SimsumMC
      */
-    public static ChatColor getTeamColour(String team) {
-        switch(team){
-            case "Blue":
-                return ChatColor.DARK_BLUE;
-            case "Green":
-                return ChatColor.GREEN;
-            case "Yellow":
-                return ChatColor.YELLOW;
-            default:
-                return ChatColor.DARK_RED;
-        }
+    public static TextColor getTeamColour(String team) {
+        return switch (team) {
+            case "Blue" -> NamedTextColor.DARK_BLUE;
+            case "Green" -> NamedTextColor.GREEN;
+            case "Yellow" -> NamedTextColor.YELLOW;
+            case "Red" -> NamedTextColor.DARK_RED;
+            default -> NamedTextColor.WHITE;
+        };
     }
 
     /**

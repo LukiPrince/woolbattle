@@ -29,6 +29,12 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Updates;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -50,6 +56,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.*;
 import woolbattle.woolbattle.Cache;
 import woolbattle.woolbattle.Config;
+import woolbattle.woolbattle.MapConfig;
 import woolbattle.woolbattle.Enums.PerkType;
 import woolbattle.woolbattle.Main;
 import woolbattle.woolbattle.achievements.AchievementUI;
@@ -72,6 +79,11 @@ public class LobbySystem implements Listener {
     public static boolean gameStarted = false;
     public static boolean runCooldownTask = false;
     public static boolean runScoreBoardTask = false;
+
+    private static String plainName(ItemMeta meta) {
+        Component display = meta.displayName();
+        return display != null ? PlainTextComponentSerializer.plainText().serialize(display) : "";
+    }
     private static int cooldown = Config.startCooldown;
     public static int teamLimit = Config.teamSize;
 
@@ -85,8 +97,9 @@ public class LobbySystem implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         // this is basically an unnecessary event -> only gets called when something goes wrong
         Player player = event.getEntity();
-        event.setDeathMessage(ChatColor.GRAY + "The player " + ChatColor.GREEN + player.getDisplayName()
-                + ChatColor.GRAY + " died.");
+        event.deathMessage(Component.text("The player ", NamedTextColor.GRAY)
+                .append(Component.text(player.getName(), NamedTextColor.GREEN))
+                .append(Component.text(" died.", NamedTextColor.GRAY)));
         if(!gameStarted){
             giveLobbyItems(player);
         }
@@ -104,17 +117,18 @@ public class LobbySystem implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        event.setJoinMessage(ChatColor.GRAY + "The player " + ChatColor.GREEN + player.getDisplayName()
-                + ChatColor.GRAY + " joined the game.");
+        event.joinMessage(Component.text("The player ", NamedTextColor.GRAY)
+                .append(Component.text(player.getName(), NamedTextColor.GREEN))
+                .append(Component.text(" joined the game.", NamedTextColor.GRAY)));
 
         if (gameStarted) {
             setGameScoreBoard(player);
             setPlayerSpectator(player);
-            player.sendMessage(ChatColor.RED + "There is already a running game!");
+            player.sendMessage(Component.text("There is already a running game!", NamedTextColor.RED));
         } else {
             setLobbyScoreBoard(player);
             giveLobbyItems(player);
-            player.teleport(Config.lobbyLocation);
+            player.teleport(MapConfig.lobbyLocation);
         }
         if (!runCooldownTask) {
             updatePlayerCooldown();
@@ -137,8 +151,9 @@ public class LobbySystem implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
 
-        event.setQuitMessage(ChatColor.GRAY + "The player " + ChatColor.GREEN + player.getDisplayName()
-                + ChatColor.GRAY + " left the game.");
+        event.quitMessage(Component.text("The player ", NamedTextColor.GRAY)
+                .append(Component.text(player.getName(), NamedTextColor.GREEN))
+                .append(Component.text(" left the game.", NamedTextColor.GRAY)));
 
         // remove voting if any
         HashMap<Integer, ArrayList<Player>> lifeVoting = Cache.getLifeVoting();
@@ -172,8 +187,8 @@ public class LobbySystem implements Listener {
             return;
         }
 
-        if(event.getCurrentItem().getType() == Material.SULPHUR){
-            player.sendMessage(ChatColor.RED + "You can't move items that are on cooldown!");
+        if(event.getCurrentItem().getType() == Material.GUNPOWDER){
+            player.sendMessage(Component.text("You can't move items that are on cooldown!", NamedTextColor.RED));
             event.setCancelled(true);
         }
         if (gameStarted) {
@@ -181,7 +196,7 @@ public class LobbySystem implements Listener {
         }
 
         if (event.getWhoClicked() instanceof Player && event.getClickedInventory() != null && event.getCurrentItem().getItemMeta() != null) {
-            if (!event.getClickedInventory().getName().equals("§bEdit Inventory") || event.getCurrentItem().getItemMeta().getDisplayName().equals(" ")) {
+            if (!event.getView().title().equals(Component.text("Edit Inventory", NamedTextColor.AQUA)) || plainName(event.getCurrentItem().getItemMeta()).equals(" ")) {
                 List<ItemStack> items = new ArrayList<>();
                 items.add(event.getCurrentItem());
                 items.add(event.getCursor());
@@ -195,12 +210,12 @@ public class LobbySystem implements Listener {
             }
         }
 
-        if(event.getClickedInventory().getName() == null ||!event.getCurrentItem().hasItemMeta() || event.getCurrentItem().getItemMeta().getDisplayName().equals(" ")) {
+        if(event.getClickedInventory() == null || event.getClickedInventory() != event.getView().getTopInventory() || !event.getCurrentItem().hasItemMeta() || plainName(event.getCurrentItem().getItemMeta()).equals(" ")) {
             return;
         }
 
-        String rawInventoryName = event.getClickedInventory().getName().substring(2);
-        String rawItemName = event.getCurrentItem().getItemMeta().getDisplayName().substring(2);
+        String rawInventoryName = PlainTextComponentSerializer.plainText().serialize(event.getView().title());
+        String rawItemName = plainName(event.getCurrentItem().getItemMeta());
 
         if(rawItemName == null){
             return;
@@ -209,7 +224,7 @@ public class LobbySystem implements Listener {
             case "Amount of Lives Voting":
                 HashMap<Integer, ArrayList<Player>> votingData = Cache.getLifeVoting();
                 ItemMeta clickedItemMeta = event.getCurrentItem().getItemMeta();
-                int lifeAmount = Integer.parseInt(clickedItemMeta.getDisplayName().substring(2).split(" ")[0]);
+                int lifeAmount = Integer.parseInt(plainName(clickedItemMeta).split(" ")[0]);
 
                 //doesn't change anything if the player already voted for the given value
                 if (votingData.get(lifeAmount).contains(player)) {
@@ -235,19 +250,21 @@ public class LobbySystem implements Listener {
                 showLifeAmountVoting(player);
                 break;
             case "Team Selecting":
-                String teamName = event.getCurrentItem().getItemMeta().getDisplayName().substring(7);
-                ChatColor chatColor = TeamSystem.getTeamColour(teamName);
+                String teamName = plainName(event.getCurrentItem().getItemMeta()).substring(5);
+                TextColor teamColor = TeamSystem.getTeamColour(teamName);
 
                 if ((Cache.getTeamMembers().get(teamName)).contains(player)) {
                     return;
 
                 } else if ((Cache.getTeamMembers().get(teamName)).size() >= teamLimit) {
-                    player.sendMessage(ChatColor.RED + "The team already has " + teamLimit + " Members!");
+                    player.sendMessage(Component.text("The team already has " + teamLimit + " Members!", NamedTextColor.RED));
 
                 } else {
                     TeamSystem.removePlayerTeam(player);
                     (Cache.getTeamMembers().get(teamName)).add(player);
-                    player.sendMessage(ChatColor.GRAY + "You have entered team " + chatColor + teamName + ChatColor.GRAY + ".");
+                    player.sendMessage(Component.text("You have entered team ", NamedTextColor.GRAY)
+                            .append(Component.text(teamName, teamColor))
+                            .append(Component.text(".", NamedTextColor.GRAY)));
                 }
 
                 TeamSystem.showTeamSelectionInventory((Player) event.getWhoClicked());
@@ -305,33 +322,33 @@ public class LobbySystem implements Listener {
      */
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getItem() == null || event.getItem().getItemMeta() == null || event.getItem().getItemMeta().getDisplayName() == null) return;
+        if (event.getItem() == null || event.getItem().getItemMeta() == null || event.getItem().getItemMeta().displayName() == null) return;
 
         Player player = event.getPlayer();
-        String displayName = event.getItem().getItemMeta().getDisplayName();
+        String displayName = plainName(event.getItem().getItemMeta());
 
         switch (displayName) {
-            case "§6§lAchievements":
+            case "Achievements":
                 AchievementUI.showAchievementGUI(player);
                 break;
-            case "§c§lLeave":
-                player.kickPlayer("§c§lYou left the game.");
+            case "Leave":
+                player.kick(Component.text("You left the game.", NamedTextColor.RED, TextDecoration.BOLD));
                 break;
-            case "§a§lAmount of Lives":
+            case "Amount of Lives":
                 showLifeAmountVoting(player);
                 break;
-            case "§b§lEdit Inventory":
+            case "Edit Inventory":
                 showEditInventoryMenu(player);
                 break;
-            case "§d§lPerks":
+            case "Perks":
                 showPerkMenu(player);
                 break;
-            case "§e§lTeam Selecting":
+            case "Team Selecting":
                 TeamSystem.showTeamSelectionInventory(player);
                 break;
         }
 
-        ActivePerk activePerk = Cache.getActivePerks().get(displayName.substring(2));
+        ActivePerk activePerk = Cache.getActivePerks().get(displayName);
         if(activePerk != null){
             activePerk.execute(event, player);
         }
@@ -346,7 +363,7 @@ public class LobbySystem implements Listener {
      */
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        if(event.getInventory().getName() == null || !event.getInventory().getName().equals("§bEdit Inventory")){
+        if(!event.getView().title().equals(Component.text("Edit Inventory", NamedTextColor.AQUA))){
             return;
         }
 
@@ -361,21 +378,21 @@ public class LobbySystem implements Listener {
         int position = 0;
 
         for (ItemStack itemStack : eventInventory.getContents()) {
-            if(itemStack != null && itemStack.hasItemMeta() && !itemStack.getType().equals(Material.GLASS)){
-                switch(itemStack.getItemMeta().getDisplayName()){
-                    case "§bShears":
+            if(itemStack != null && itemStack.hasItemMeta() && !itemStack.getType().equals(Material.BLACK_STAINED_GLASS_PANE)){
+                switch(plainName(itemStack.getItemMeta())){
+                    case "Shears":
                         shearsPosition = position - 9;
                         break;
-                    case "§bBow":
+                    case "Bow":
                         bowPosition = position - 9;
                         break;
-                    case "§bEnder Pearl":
+                    case "Ender Pearl":
                         enderPearlPosition = position - 9;
                         break;
-                    case "§bActive Perk 1":
+                    case "Active Perk 1":
                         activePerk1Position = position - 9;
                         break;
-                    case "§bActive Perk 2":
+                    case "Active Perk 2":
                         activePerk2Position = position - 9;
                         break;
                 }
@@ -413,7 +430,7 @@ public class LobbySystem implements Listener {
                 }
 
             }.runTaskLaterAsynchronously(Main.getInstance(), 10);
-            player.sendMessage(ChatColor.RED + "Something went wrong!");
+            player.sendMessage(Component.text("Something went wrong!", NamedTextColor.RED));
             return;
         }
 
@@ -449,7 +466,7 @@ public class LobbySystem implements Listener {
             collection.updateOne(query, updates);
         }
 
-        player.sendMessage(ChatColor.GREEN + "Your new inventory was successfully saved.");
+        player.sendMessage(Component.text("Your new inventory was successfully saved.", NamedTextColor.GREEN));
 
         new BukkitRunnable(){
 
@@ -489,16 +506,16 @@ public class LobbySystem implements Listener {
             Location location;
             switch (team){
                 case "Red":
-                    location = Config.redLocation;
+                    location = MapConfig.redLocation;
                     break;
                 case "Green":
-                    location = Config.greenLocation;
+                    location = MapConfig.greenLocation;
                     break;
                 case "Yellow":
-                    location = Config.yellowLocation;
+                    location = MapConfig.yellowLocation;
                     break;
                 default:
-                    location = Config.blueLocation;
+                    location = MapConfig.blueLocation;
                     break;
             }
             setPlayerCooldown(player, 0);
@@ -508,6 +525,7 @@ public class LobbySystem implements Listener {
 
             ItemSystem.giveItems(player);
             player.teleport(location);
+            player.setAllowFlight(true);
 
             setPlayerSpawnProtection(player, Config.spawnProtectionLengthAtGameStart);
 
@@ -546,23 +564,31 @@ public class LobbySystem implements Listener {
 
         Cache.clear();
 
-        Bukkit.broadcastMessage(
-                ChatColor.GRAY + "The team " + ChatColor.BOLD + winnerTeam + ChatColor.RESET + ChatColor.GRAY + " won!"
-        );
+        Bukkit.broadcast(Component.text("The team ", NamedTextColor.GRAY)
+                .append(Component.text(winnerTeam, NamedTextColor.GRAY, TextDecoration.BOLD))
+                .append(Component.text(" won!", NamedTextColor.GRAY)));
 
         Collection<? extends Player> players = Bukkit.getOnlinePlayers();
 
         for(Player player: players){
             setLobbyScoreBoard(player);
             giveLobbyItems(player);
-            player.teleport(Config.lobbyLocation);
+            player.teleport(MapConfig.lobbyLocation);
+            player.setAllowFlight(true);
             if(player.getGameMode() == GameMode.SPECTATOR || player.getGameMode() == GameMode.CREATIVE){
                 player.setGameMode(GameMode.SURVIVAL);
             }
-            player.sendTitle(winnerTeam + ChatColor.GRAY + " won!", " ");
+            player.showTitle(net.kyori.adventure.title.Title.title(
+                    Component.text(winnerTeam + " won!", NamedTextColor.GRAY),
+                    Component.empty(),
+                    net.kyori.adventure.title.Title.Times.times(
+                            java.time.Duration.ofMillis(500),
+                            java.time.Duration.ofMillis(3500),
+                            java.time.Duration.ofMillis(1000))));
         }
 
         updateScoreBoard();
+        BlockBreakingSystem.clearPlacedBlocks();
         BlockBreakingSystem.resetMap();
         return true;
     }
@@ -590,10 +616,10 @@ public class LobbySystem implements Listener {
         }
         if(emptyTeams >= 3){
             if(existingTeam != null){
-                endGame(TeamSystem.getTeamColour(existingTeam) + existingTeam);
+                endGame(existingTeam);
             }
             else{
-                endGame("§cUnknown");
+                endGame("Unknown");
             }
             return;
         }
@@ -616,10 +642,10 @@ public class LobbySystem implements Listener {
         }
         if(deathTeams >= 3){
             if(existingTeam != null){
-                endGame(TeamSystem.getTeamColour(existingTeam) + existingTeam);
+                endGame(existingTeam);
             }
             else{
-                endGame("§cUnknown");
+                endGame("Unknown");
             }
         }
     }
@@ -657,14 +683,14 @@ public class LobbySystem implements Listener {
             if(perkType == PerkType.FIRST_ACTIVE){
                 Object get = foundDocument.get(PerkType.SECOND_ACTIVE.toString().toLowerCase());
                 if(get != null && get.equals(perkName)){
-                    player.sendMessage(ChatColor.RED + "You can't have the same active perks!");
+                    player.sendMessage(Component.text("You can't have the same active perks!", NamedTextColor.RED));
                     return;
                 }
             }
             else if (perkType == PerkType.SECOND_ACTIVE){
                 Object get = foundDocument.get(PerkType.FIRST_ACTIVE.toString().toLowerCase());
                 if(get != null && get.equals(perkName)){
-                    player.sendMessage(ChatColor.RED + "You can't have the same active perks!");
+                    player.sendMessage(Component.text("You can't have the same active perks!", NamedTextColor.RED));
                     return;
                 }
             }
@@ -696,37 +722,37 @@ public class LobbySystem implements Listener {
         inv.setHelmet(null);
 
         // Team Selecting Item
-        ItemStack teamStack = new ItemStack(Material.BED);
+        ItemStack teamStack = new ItemStack(Material.RED_BED);
         ItemMeta teamMeta = teamStack.getItemMeta();
-        teamMeta.setDisplayName("§e§lTeam Selecting");
+        teamMeta.displayName(Component.text("Team Selecting", NamedTextColor.YELLOW, TextDecoration.BOLD));
         teamStack.setItemMeta(teamMeta);
         inv.setItem(0, teamStack);
 
         // Achievement Item
         ItemStack achievementStack = new ItemStack(Material.DIAMOND);
         ItemMeta achievementMeta = achievementStack.getItemMeta();
-        achievementMeta.setDisplayName("§6§lAchievements");
+        achievementMeta.displayName(Component.text("Achievements", NamedTextColor.GOLD, TextDecoration.BOLD));
         achievementStack.setItemMeta(achievementMeta);
         inv.setItem(1, achievementStack);
 
         // Vote Life Count Item
         ItemStack livesStack = new ItemStack(Material.FEATHER);
         ItemMeta livesMeta = livesStack.getItemMeta();
-        livesMeta.setDisplayName("§a§lAmount of Lives");
+        livesMeta.displayName(Component.text("Amount of Lives", NamedTextColor.GREEN, TextDecoration.BOLD));
         livesStack.setItemMeta(livesMeta);
         inv.setItem(2, livesStack);
 
         // Edit Inventory Item
         ItemStack inventoryStack = new ItemStack(Material.CHEST);
         ItemMeta inventoryMeta = inventoryStack.getItemMeta();
-        inventoryMeta.setDisplayName("§b§lEdit Inventory");
+        inventoryMeta.displayName(Component.text("Edit Inventory", NamedTextColor.AQUA, TextDecoration.BOLD));
         inventoryStack.setItemMeta(inventoryMeta);
         inv.setItem(4, inventoryStack);
 
         // Choose Perks Item TODO: add interaction -> LATER
         ItemStack perksStack = new ItemStack(Material.ENDER_CHEST);
         ItemMeta perksMeta = perksStack.getItemMeta();
-        perksMeta.setDisplayName("§d§lPerks");
+        perksMeta.displayName(Component.text("Perks", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD));
         perksStack.setItemMeta(perksMeta);
         inv.setItem(6, perksStack);
 
@@ -734,7 +760,7 @@ public class LobbySystem implements Listener {
         ItemStack leaveStack = new ItemStack(Material.SLIME_BALL);
         ItemMeta leaveMeta = leaveStack.getItemMeta();
         leaveMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
-        leaveMeta.setDisplayName("§c§lLeave");
+        leaveMeta.displayName(Component.text("Leave", NamedTextColor.RED, TextDecoration.BOLD));
         leaveMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         leaveStack.setItemMeta(leaveMeta);
         inv.setItem(8, leaveStack);
@@ -747,12 +773,12 @@ public class LobbySystem implements Listener {
      * @author SimsumMC
      */
     private static void showLifeAmountVoting(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 3*9, "§aAmount of Lives Voting");
+        Inventory inv = Bukkit.createInventory(null, 3*9, Component.text("Amount of Lives Voting", NamedTextColor.GREEN));
 
         // Glass Background
-        ItemStack glassStack = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 15);
+        ItemStack glassStack = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta glassMeta = glassStack.getItemMeta();
-        glassMeta.setDisplayName(" ");
+        glassMeta.displayName(Component.text(" "));
         glassStack.setItemMeta(glassMeta);
 
         for (int i = 0; i<= 26; i++) {
@@ -761,28 +787,28 @@ public class LobbySystem implements Listener {
 
         // 5 Votes Item
         int fiveVoteCount = Cache.getLifeVoting().get(5).size();
-        ItemStack fiveLivesStack = new ItemStack(Material.INK_SACK, 5, (short) 0, (byte) 10);
+        ItemStack fiveLivesStack = new ItemStack(Material.LIME_DYE, 5);
         ItemMeta fiveLivesMeta = fiveLivesStack.getItemMeta();
-        fiveLivesMeta.setDisplayName("§a5 Lives");
-        fiveLivesMeta.setLore(new ArrayList<String>(){{add(ChatColor.GRAY + "»Votes: §a" + fiveVoteCount);}});
+        fiveLivesMeta.displayName(Component.text("5 Lives", NamedTextColor.GREEN));
+        fiveLivesMeta.lore(List.of(Component.text("»Votes: ", NamedTextColor.GRAY).append(Component.text(fiveVoteCount, NamedTextColor.GREEN))));
         fiveLivesStack.setItemMeta(fiveLivesMeta);
         inv.setItem(11, fiveLivesStack);
 
         // 10 Votes Item
         int tenVoteCount = Cache.getLifeVoting().get(10).size();
-        ItemStack tenLivesStack = new ItemStack(Material.INK_SACK, 10, (short) 0, (byte) 10);
+        ItemStack tenLivesStack = new ItemStack(Material.LIME_DYE, 10);
         ItemMeta tenLivesMeta = tenLivesStack.getItemMeta();
-        tenLivesMeta.setDisplayName("§a10 Lives");
-        tenLivesMeta.setLore(new ArrayList<String>(){{add(ChatColor.GRAY + "»Votes: §a" + tenVoteCount);}});
+        tenLivesMeta.displayName(Component.text("10 Lives", NamedTextColor.GREEN));
+        tenLivesMeta.lore(List.of(Component.text("»Votes: ", NamedTextColor.GRAY).append(Component.text(tenVoteCount, NamedTextColor.GREEN))));
         tenLivesStack.setItemMeta(tenLivesMeta);
         inv.setItem(13, tenLivesStack);
 
         // 15 Votes Item
         int fifteenVoteCount = Cache.getLifeVoting().get(15).size();
-        ItemStack fifteenLivesStack = new ItemStack(Material.INK_SACK, 15, (short) 0, (byte) 10);
+        ItemStack fifteenLivesStack = new ItemStack(Material.LIME_DYE, 15);
         ItemMeta fifteenLivesMeta = fifteenLivesStack.getItemMeta();
-        fifteenLivesMeta.setDisplayName("§a15 Lives");
-        fifteenLivesMeta.setLore(new ArrayList<String>(){{add(ChatColor.GRAY + "»Votes: §a" + fifteenVoteCount);}});
+        fifteenLivesMeta.displayName(Component.text("15 Lives", NamedTextColor.GREEN));
+        fifteenLivesMeta.lore(List.of(Component.text("»Votes: ", NamedTextColor.GRAY).append(Component.text(fifteenVoteCount, NamedTextColor.GREEN))));
         fifteenLivesStack.setItemMeta(fifteenLivesMeta);
         inv.setItem(15, fifteenLivesStack);
 
@@ -795,12 +821,12 @@ public class LobbySystem implements Listener {
      * @author SimsumMC
      */
     private static void showEditInventoryMenu(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 3*9, "§bEdit Inventory");
+        Inventory inv = Bukkit.createInventory(null, 3*9, Component.text("Edit Inventory", NamedTextColor.AQUA));
 
         // Glass Background
-        ItemStack glassStack = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 15);
+        ItemStack glassStack = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta glassMeta = glassStack.getItemMeta();
-        glassMeta.setDisplayName(" ");
+        glassMeta.displayName(Component.text(" "));
         glassStack.setItemMeta(glassMeta);
 
         for (int i = 0; i<= 26; i++) {
@@ -840,7 +866,7 @@ public class LobbySystem implements Listener {
         ItemStack shearsStack = new ItemStack(Material.SHEARS);
         ItemMeta shearsMeta = shearsStack.getItemMeta();
         shearsMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
-        shearsMeta.setDisplayName("§bShears");
+        shearsMeta.displayName(Component.text("Shears", NamedTextColor.AQUA));
         shearsStack.setItemMeta(shearsMeta);
         inv.setItem(shearsSlot, shearsStack);
 
@@ -848,28 +874,28 @@ public class LobbySystem implements Listener {
         ItemStack bowStack = new ItemStack(Material.BOW);
         ItemMeta bowMeta = bowStack.getItemMeta();
         bowMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
-        bowMeta.setDisplayName("§bBow");
+        bowMeta.displayName(Component.text("Bow", NamedTextColor.AQUA));
         bowStack.setItemMeta(bowMeta);
         inv.setItem(bowSlot, bowStack);
 
         // ender pearl
         ItemStack enderPearlStack = new ItemStack(Material.ENDER_PEARL);
         ItemMeta enderPearlMeta = enderPearlStack.getItemMeta();
-        enderPearlMeta.setDisplayName("§bEnder Pearl");
+        enderPearlMeta.displayName(Component.text("Ender Pearl", NamedTextColor.AQUA));
         enderPearlStack.setItemMeta(enderPearlMeta);
         inv.setItem(enderPearlSlot, enderPearlStack);
 
         // active perk 1
         ItemStack activePerk1Stack = new ItemStack(Material.BARRIER);
         ItemMeta activePerk1Meta = activePerk1Stack.getItemMeta();
-        activePerk1Meta.setDisplayName("§bActive Perk 1");
+        activePerk1Meta.displayName(Component.text("Active Perk 1", NamedTextColor.AQUA));
         activePerk1Stack.setItemMeta(activePerk1Meta);
         inv.setItem(activePerk1Slot, activePerk1Stack);
 
         // active perk 1
         ItemStack activePerk2Stack = new ItemStack(Material.BARRIER);
         ItemMeta activePerk2Meta = activePerk2Stack.getItemMeta();
-        activePerk2Meta.setDisplayName("§bActive Perk 2");
+        activePerk2Meta.displayName(Component.text("Active Perk 2", NamedTextColor.AQUA));
         activePerk2Stack.setItemMeta(activePerk2Meta);
         inv.setItem(activePerk2Slot, activePerk2Stack);
 
@@ -882,12 +908,12 @@ public class LobbySystem implements Listener {
      * @author SimsumMC
      */
     private static void showPerkMenu(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 3*9, "§dChoose Perks");
+        Inventory inv = Bukkit.createInventory(null, 3*9, Component.text("Choose Perks", NamedTextColor.LIGHT_PURPLE));
 
         // Glass Background
-        ItemStack glassStack = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 15);
+        ItemStack glassStack = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta glassMeta = glassStack.getItemMeta();
-        glassMeta.setDisplayName(" ");
+        glassMeta.displayName(Component.text(" "));
         glassStack.setItemMeta(glassMeta);
 
         for (int i = 0; i<= 26; i++) {
@@ -897,21 +923,21 @@ public class LobbySystem implements Listener {
         // Active Perk #1
         ItemStack activeOneStack = new ItemStack(Material.CHEST);
         ItemMeta activeOneMeta = activeOneStack.getItemMeta();
-        activeOneMeta.setDisplayName("§dActive Perk #1");
+        activeOneMeta.displayName(Component.text("Active Perk #1", NamedTextColor.LIGHT_PURPLE));
         activeOneStack.setItemMeta(activeOneMeta);
         inv.setItem(11, activeOneStack);
 
         // Active Perk #2
         ItemStack activeTwoStack = new ItemStack(Material.CHEST);
         ItemMeta activeTwoMeta = activeTwoStack.getItemMeta();
-        activeTwoMeta.setDisplayName("§dActive Perk #2");
+        activeTwoMeta.displayName(Component.text("Active Perk #2", NamedTextColor.LIGHT_PURPLE));
         activeTwoStack.setItemMeta(activeTwoMeta);
         inv.setItem(13, activeTwoStack);
 
         // Passive Perk
         ItemStack passiveStack = new ItemStack(Material.ENDER_CHEST);
         ItemMeta passiveMeta = passiveStack.getItemMeta();
-        passiveMeta.setDisplayName("§dPassive Perk");
+        passiveMeta.displayName(Component.text("Passive Perk", NamedTextColor.LIGHT_PURPLE));
         passiveStack.setItemMeta(passiveMeta);
         inv.setItem(15, passiveStack);
 
@@ -937,9 +963,9 @@ public class LobbySystem implements Listener {
             }
         }
 
-        Inventory inv = Bukkit.createInventory(null, 3*9, "§dActive Perk #" + perkType.value);
+        Inventory inv = Bukkit.createInventory(null, 3*9, Component.text("Active Perk #" + perkType.value, NamedTextColor.LIGHT_PURPLE));
 
-        ArrayList<String> newLore;
+        List<Component> newLore;
 
         HashMap<String, ActivePerk> activePerks = Cache.getActivePerks();
         for(ActivePerk perk : activePerks.values()){
@@ -950,7 +976,7 @@ public class LobbySystem implements Listener {
             ItemStack itemStack = perk.getItemStack().clone();
             ItemMeta itemMeta = itemStack.getItemMeta();
 
-            if(selectedPerk != null && itemMeta.getDisplayName().substring(2).equals(selectedPerk)){
+            if(selectedPerk != null && plainName(itemMeta).equals(selectedPerk)){
                 itemMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
                 itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
@@ -965,12 +991,12 @@ public class LobbySystem implements Listener {
 
             newLore = new ArrayList<>();
 
-            newLore.add(ChatColor.WHITE + perk.getDescription());
-            newLore.add("\u1CBC");
-            newLore.add(ChatColor.GOLD + "WoolCost: " + ChatColor.DARK_PURPLE + perk.getWoolCost());
-            newLore.add(ChatColor.GOLD + "Cooldown: " + ChatColor.DARK_PURPLE + perk.getCooldown());
+            newLore.add(Component.text(perk.getDescription(), NamedTextColor.WHITE));
+            newLore.add(Component.text("\u1CBC"));
+            newLore.add(Component.text("WoolCost: ", NamedTextColor.GOLD).append(Component.text(perk.getWoolCost(), NamedTextColor.DARK_PURPLE)));
+            newLore.add(Component.text("Cooldown: ", NamedTextColor.GOLD).append(Component.text(perk.getCooldown(), NamedTextColor.DARK_PURPLE)));
 
-            itemMeta.setLore(newLore);
+            itemMeta.lore(newLore);
 
             itemStack.setItemMeta(itemMeta);
 
@@ -978,9 +1004,9 @@ public class LobbySystem implements Listener {
         }
 
         // Back Item
-        ItemStack backStack = new ItemStack(Material.WOOD_DOOR);
+        ItemStack backStack = new ItemStack(Material.OAK_DOOR);
         ItemMeta backMeta = backStack.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "Go Back");
+        backMeta.displayName(Component.text("Go Back", NamedTextColor.RED));
         backStack.setItemMeta(backMeta);
         inv.setItem(26, backStack);
 
@@ -999,9 +1025,9 @@ public class LobbySystem implements Listener {
             selectedPerk = (String) foundDocument.get("passive");
         }
 
-        Inventory inv = Bukkit.createInventory(null, 3*9, "§dPassive Perk");
+        Inventory inv = Bukkit.createInventory(null, 3*9, Component.text("Passive Perk", NamedTextColor.LIGHT_PURPLE));
 
-        ArrayList<String> newLore;
+        List<Component> newLore;
 
         HashMap<String, PassivePerk<? extends Event, ?>> passivePerks = Cache.getPassivePerks();
         for(PassivePerk<? extends Event, ?> perk : passivePerks.values()){
@@ -1009,7 +1035,7 @@ public class LobbySystem implements Listener {
             ItemStack itemStack = perk.getItem().clone();
             ItemMeta itemMeta = itemStack.getItemMeta();
 
-            if(selectedPerk != null && itemMeta.getDisplayName().substring(2).equals(selectedPerk)){
+            if(selectedPerk != null && plainName(itemMeta).equals(selectedPerk)){
                 itemMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
                 itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
@@ -1024,9 +1050,9 @@ public class LobbySystem implements Listener {
 
             newLore = new ArrayList<>();
 
-            newLore.add(ChatColor.WHITE + perk.getDescription());
+            newLore.add(Component.text(perk.getDescription(), NamedTextColor.WHITE));
 
-            itemMeta.setLore(newLore);
+            itemMeta.lore(newLore);
 
             itemStack.setItemMeta(itemMeta);
 
@@ -1034,9 +1060,9 @@ public class LobbySystem implements Listener {
         }
 
         // Back Item
-        ItemStack backStack = new ItemStack(Material.WOOD_DOOR);
+        ItemStack backStack = new ItemStack(Material.OAK_DOOR);
         ItemMeta backMeta = backStack.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "Go Back");
+        backMeta.displayName(Component.text("Go Back", NamedTextColor.RED));
         backStack.setItemMeta(backMeta);
         inv.setItem(26, backStack);
 
@@ -1120,7 +1146,7 @@ public class LobbySystem implements Listener {
      * @author SimsumMC
      */
     public static void setPlayerSpectator(Player player) {
-        player.teleport(Config.midLocation);
+        player.teleport(MapConfig.midLocation);
         player.setGameMode(GameMode.SPECTATOR);
     }
 
@@ -1160,10 +1186,9 @@ public class LobbySystem implements Listener {
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         Scoreboard board = manager.getNewScoreboard();
 
-        Objective obj = board.registerNewObjective("Lobby", "dummy");
+        Objective obj = board.registerNewObjective("Lobby", "dummy", "§a§lWoolbattle");
 
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-        obj.setDisplayName("§a§lWoolbattle");
 
         Team team = board.registerNewTeam("team");
         Team map = board.registerNewTeam("map");
@@ -1172,29 +1197,29 @@ public class LobbySystem implements Listener {
 
         obj.getScore("\u1CBC\u1CBC\u1CBC\u1CBC").setScore(11);
 
-        obj.getScore(ChatColor.GRAY + "»Team").setScore(10);
+        obj.getScore("§7»Team").setScore(10);
         obj.getScore("§c").setScore(9);
 
         obj.getScore("\u1CBC\u1CBC\u1CBC").setScore(8);
 
-        obj.getScore(ChatColor.GRAY + "»Map").setScore(7);
+        obj.getScore("§7»Map").setScore(7);
         obj.getScore("§d").setScore(6);
 
         obj.getScore("\u1CBC\u1CBC").setScore(5);
 
-        obj.getScore(ChatColor.GRAY + "»Amount of Lives").setScore(4);
+        obj.getScore("§7»Amount of Lives").setScore(4);
         obj.getScore("§e").setScore(3);
 
         obj.getScore("\u1CBC").setScore(2);
 
-        obj.getScore(ChatColor.GRAY + "»Players").setScore(1);
+        obj.getScore("§7»Players").setScore(1);
         obj.getScore("§b").setScore(0);
 
         team.addEntry("§c");
         team.setPrefix(TeamSystem.getPlayerTeam(player, false));
 
         map.addEntry("§d");
-        map.setPrefix("§d" + Config.defaultMap);
+        map.setPrefix("§d" + MapConfig.mapName);
 
         lives.addEntry("§e");
         lives.setPrefix("§e" + Config.defaultLives);
@@ -1225,7 +1250,7 @@ public class LobbySystem implements Listener {
         Team players = board.getTeam("players");
 
         team.setPrefix(TeamSystem.getPlayerTeam(player, false));
-        map.setPrefix("§d" + Config.defaultMap);
+        map.setPrefix("§d" + MapConfig.mapName);
         lives.setPrefix("§e" + getTopVotedLifeAmount());
         players.setPrefix("§b" + actualPlayers + "/" + maxPlayers);
 
@@ -1241,10 +1266,9 @@ public class LobbySystem implements Listener {
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         Scoreboard board = manager.getNewScoreboard();
 
-        Objective obj = board.registerNewObjective("Game", "dummy");
+        Objective obj = board.registerNewObjective("Game", "dummy", "§a§lWoolbattle");
 
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-        obj.setDisplayName("§a§lWoolbattle");
 
         Team team = board.registerNewTeam("team");
         Team map = board.registerNewTeam("map");
@@ -1256,20 +1280,20 @@ public class LobbySystem implements Listener {
 
         obj.getScore("\u1CBC\u1CBC\u1CBC").setScore(11);
 
-        obj.getScore(ChatColor.GRAY + "»Team").setScore(10);
+        obj.getScore("§7»Team").setScore(10);
         obj.getScore("§c").setScore(9);
 
         obj.getScore("\u1CBC\u1CBC").setScore(8);
 
-        obj.getScore(ChatColor.GRAY + "»Map").setScore(7);
+        obj.getScore("§7»Map").setScore(7);
         obj.getScore("§d").setScore(6);
 
         obj.getScore("\u1CBC").setScore(5);
 
-        obj.getScore(ChatColor.GRAY + "»Lives").setScore(4);
+        obj.getScore("§7»Lives").setScore(4);
 
         obj.getScore("§4").setScore(3);
-        obj.getScore(ChatColor.BLUE.toString()).setScore(2);
+        obj.getScore("§9").setScore(2);
         obj.getScore("§2").setScore(1);
         obj.getScore("§e").setScore(0);
 
@@ -1277,7 +1301,7 @@ public class LobbySystem implements Listener {
         team.setPrefix(TeamSystem.getPlayerTeam(player,false));
 
         map.addEntry("§d");
-        map.setPrefix("§d" + Config.defaultMap);
+        map.setPrefix("§d" + MapConfig.mapName);
 
         HashMap<String, Integer> teamLives = Cache.getTeamLives();
         int redLives = teamLives.get("Red");
@@ -1288,8 +1312,8 @@ public class LobbySystem implements Listener {
         redTeam.addEntry("§4");
         redTeam.setPrefix("§4❤ " + redLives);
 
-        blueTeam.addEntry(ChatColor.BLUE.toString());
-        blueTeam.setPrefix(ChatColor.BLUE + "❤ " + blueLives);
+        blueTeam.addEntry("§9");
+        blueTeam.setPrefix("§9❤ " + blueLives);
 
         greenTeam.addEntry("§2");
         greenTeam.setPrefix("§2❤ " + greenLives);
@@ -1320,7 +1344,7 @@ public class LobbySystem implements Listener {
         Team yellowTeam = board.getTeam("yellowTeam");
 
         team.setPrefix(TeamSystem.getPlayerTeam(player,false));
-        map.setPrefix("§d" + Config.defaultMap);
+        map.setPrefix("§d" + MapConfig.mapName);
 
         HashMap<String, Integer> teamLives = Cache.getTeamLives();
         int redLives = teamLives.get("Red");
@@ -1329,7 +1353,7 @@ public class LobbySystem implements Listener {
         int yellowLives = teamLives.get("Yellow");
 
         redTeam.setPrefix("§4❤ " + redLives);
-        blueTeam.setPrefix(ChatColor.BLUE + "❤ " + blueLives);
+        blueTeam.setPrefix("§9❤ " + blueLives);
         greenTeam.setPrefix("§2❤ " + greenLives);
         yellowTeam.setPrefix("§e❤ " + yellowLives);
     }
