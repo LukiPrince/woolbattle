@@ -24,8 +24,6 @@
 
 package woolbattle.woolbattle.perks;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bson.Document;
@@ -38,13 +36,11 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import woolbattle.woolbattle.Cache;
-import woolbattle.woolbattle.Main;
+import woolbattle.woolbattle.PlayerDataCache;
 import woolbattle.woolbattle.stats.StatsSystem;
 
 import java.util.Collection;
 import java.util.HashMap;
-
-import static com.mongodb.client.model.Filters.eq;
 import static woolbattle.woolbattle.itemsystem.ItemSystem.*;
 
 public class ActivePerk {
@@ -204,12 +200,7 @@ public class ActivePerk {
      */
     private int getSlotDB(Player player){
         String activePerkName = this.itemName;
-
-        MongoDatabase database = Main.getMongoDatabase();
-
-        MongoCollection<Document> collection = database.getCollection("playerInventories");
-
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document foundDocument = PlayerDataCache.getPlayerInventories(player);
 
         int shearsSlot;
         int bowSlot;
@@ -256,9 +247,7 @@ public class ActivePerk {
             }
         }
 
-        MongoCollection<Document> perksCollection = database.getCollection("playerPerks");
-
-        Document perksDocument = perksCollection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document perksDocument = PlayerDataCache.getPlayerPerks(player);
 
         if(perksDocument != null) {
 
@@ -288,15 +277,10 @@ public class ActivePerk {
      * @author SimsumMC
      */
     public static void loadActivePerkSlots(){
-        MongoDatabase database = Main.getMongoDatabase();
-
-        MongoCollection<Document> collection = database.getCollection("playerInventories");
-        MongoCollection<Document> perksCollection = database.getCollection("playerPerks");
-
         Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
 
         for(Player player : onlinePlayers){
-            Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+            Document foundDocument = PlayerDataCache.getPlayerInventories(player);
 
             int shearsSlot;
             int bowSlot;
@@ -337,7 +321,7 @@ public class ActivePerk {
             playerSlots.put("Bow", bowSlot);
             playerSlots.put("Ender Pearl", enderPearlSlot);
 
-            Document perksDocument = perksCollection.find(eq("_id", player.getUniqueId().toString())).first();
+            Document perksDocument = PlayerDataCache.getPlayerPerks(player);
 
             if(perksDocument != null) {
 

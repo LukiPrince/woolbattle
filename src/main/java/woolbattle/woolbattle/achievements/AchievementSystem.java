@@ -48,6 +48,36 @@ import static com.mongodb.client.model.Filters.eq;
 
 public class AchievementSystem implements Listener {
 
+    private static Document getOrCreateAchievementsDocument(Player player, MongoCollection<Document> collection) {
+        String playerId = player.getUniqueId().toString();
+        Document foundDocument = collection.find(eq("_id", playerId)).first();
+        if (foundDocument != null) {
+            return foundDocument;
+        }
+
+        Document document = new Document("_id", playerId).append("achievements", new ArrayList<String>());
+        collection.insertOne(document);
+        return document;
+    }
+
+    private static ArrayList<String> extractAchievements(Document document) {
+        ArrayList<String> achievements = new ArrayList<>();
+        if (document == null) {
+            return achievements;
+        }
+
+        Object rawAchievements = document.get("achievements");
+        if (rawAchievements instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                if (entry instanceof String) {
+                    achievements.add((String) entry);
+                }
+            }
+        }
+
+        return achievements;
+    }
+
     private static int countWoolInInventory(Player player) {
         int count = 0;
         for (ItemStack stack : player.getInventory().getContents()) {
@@ -68,14 +98,15 @@ public class AchievementSystem implements Listener {
         MongoDatabase db = Main.getMongoDatabase();
         MongoCollection<Document> collection = db.getCollection("playerAchievements");
         Document query = new Document().append("_id",  player.getUniqueId().toString());
-        ArrayList<String> arrayList = (ArrayList<String>) collection.find(eq("_id", player.getUniqueId().toString())).first().get("achievements");
+        Document foundDocument = getOrCreateAchievementsDocument(player, collection);
+        ArrayList<String> arrayList = extractAchievements(foundDocument);
         if (arrayList.contains("fullwool")) {
             return;
         }
         else if (countWoolInInventory(player) >= Config.maxStacks * 64) {
             player.sendMessage(Component.text("You just received the 'Strategist' Achievement!", NamedTextColor.GREEN));
 
-            Bson updates = Updates.push("achievements", "fullwool");
+            Bson updates = Updates.addToSet("achievements", "fullwool");
             collection.updateOne(query, updates);
         }
     }
@@ -90,7 +121,8 @@ public class AchievementSystem implements Listener {
         MongoDatabase db = Main.getMongoDatabase();
         MongoCollection<Document> collection = db.getCollection("playerAchievements");
         Document query = new Document().append("_id",  player.getUniqueId().toString());
-        ArrayList<String> arrayList = (ArrayList<String>) collection.find(eq("_id", player.getUniqueId().toString())).first().get("achievements");
+        Document foundDocument = getOrCreateAchievementsDocument(player, collection);
+        ArrayList<String> arrayList = extractAchievements(foundDocument);
 
         if (!LobbySystem.gameStarted) {
             return;
@@ -100,8 +132,7 @@ public class AchievementSystem implements Listener {
         }
         else {
             player.sendMessage(Component.text("You just received the 'Dominator' Achievement!", NamedTextColor.GREEN));
-            arrayList.add("fullwool");
-            Bson updates = (Bson) arrayList;
+            Bson updates = Updates.addToSet("achievements", "killstreak5");
 
             collection.updateOne(query, updates);
         }

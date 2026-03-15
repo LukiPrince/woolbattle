@@ -165,7 +165,16 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+        Bukkit.getScheduler().cancelTasks(this);
+        PlayerDataCache.clear();
+
+        if (mongoClient != null) {
+            mongoClient.close();
+            mongoClient = null;
+            db = null;
+        }
+
+        instance = null;
     }
 
     public static Main getInstance(){

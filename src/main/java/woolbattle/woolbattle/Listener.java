@@ -42,8 +42,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 import woolbattle.woolbattle.achievements.AchievementSystem;
 import woolbattle.woolbattle.woolsystem.BlockBreakingSystem;
 
-import java.util.ArrayList;
-
 import static woolbattle.woolbattle.team.TeamSystem.findTeamDyeColor;
 import woolbattle.woolbattle.WoolHelper;
 
@@ -72,34 +70,19 @@ public class Listener implements org.bukkit.event.Listener {
         Block block = event.getBlock();
         ItemStack itemStack = new ItemStack(WoolHelper.getWoolMaterial(teamColor), 1);
         Material type = block.getType();
-        boolean blockIsMap = false;
+        boolean blockIsMap = BlockBreakingSystem.isMapBlock(block.getLocation());
         int itemAmount = 0;
 
         int givenWoolAmount = Config.givenWoolAmount;
         int maxStacks = Config.maxStacks;
         int delayInTicks = Config.woolReplaceDelay;
 
-        //Checks, whether the event's block is specified in the internal array of map-blocks, writes the value of the operation in the boolean blockIsMap.
-        for(Location iterBlock : BlockBreakingSystem.getMapBlocks()){
-            if(iterBlock.equals(block.getLocation())){
-                blockIsMap = true;
-                break;
-            }
-        }
-
         //Checks, whether a modification of the map's blocks, following the action of breaking a block is to be made.
         // If this is not the case, and if the broken block possesses the wool material as it's type, it is replaced
         // after cooldown and an amount of
         if(BlockBreakingSystem.isCollectBrokenBlocks()){
-            ArrayList<Location> mapBlocks = BlockBreakingSystem.getMapBlocks();
-            ArrayList<Location> removedBlocks = BlockBreakingSystem.getRemovedBlocks();
-
-            if(mapBlocks.contains(block.getLocation())){
-                mapBlocks.remove(block.getLocation());
-                BlockBreakingSystem.setMapBlocks(mapBlocks);
-
-                removedBlocks.add(block.getLocation());
-                BlockBreakingSystem.setRemovedBlocks(removedBlocks);
+            if(BlockBreakingSystem.removeMapBlock(block.getLocation())){
+                BlockBreakingSystem.addRemovedBlock(block.getLocation());
             }
 
         }else{
@@ -163,12 +146,9 @@ public class Listener implements org.bukkit.event.Listener {
     public void onBlockPlace(BlockPlaceEvent event) {
 
         if(BlockBreakingSystem.isCollectBrokenBlocks()){
-            ArrayList<Location> mapBlocks = BlockBreakingSystem.getMapBlocks();
-            mapBlocks.add(event.getBlockPlaced().getLocation());
-
-            BlockBreakingSystem.setMapBlocks(mapBlocks);
-            ArrayList<Location> removedBlocks = BlockBreakingSystem.getRemovedBlocks();
-            removedBlocks.remove(event.getBlock().getLocation());
+            Location location = event.getBlockPlaced().getLocation();
+            BlockBreakingSystem.addMapBlock(location);
+            BlockBreakingSystem.removeRemovedBlock(location);
         }
     }
 

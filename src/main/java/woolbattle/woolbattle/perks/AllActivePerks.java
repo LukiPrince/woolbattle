@@ -24,8 +24,6 @@
 
 package woolbattle.woolbattle.perks;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -57,6 +55,7 @@ import org.bukkit.util.Vector;
 import woolbattle.woolbattle.Cache;
 import woolbattle.woolbattle.Config;
 import woolbattle.woolbattle.Main;
+import woolbattle.woolbattle.PlayerDataCache;
 import woolbattle.woolbattle.lobby.LobbySystem;
 import woolbattle.woolbattle.stats.StatsSystem;
 
@@ -73,8 +72,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import static com.mongodb.client.model.Filters.eq;
 
 import static woolbattle.woolbattle.base.Base.addEnderPearl;
 import static woolbattle.woolbattle.itemsystem.ItemSystem.setItemCooldown;
@@ -99,7 +96,12 @@ public class AllActivePerks implements Listener {
     private static final long CHAIN_MARK_STEP_DELAY_TICKS = 14L;
     private static final long OVERCLOCK_DURATION_MS = 8000L;
     private static final long OVERCLOCK_OVERHEAT_MS = 3000L;
+    private static final int GRAPPLING_STRAIGHT_FLIGHT_TICKS = 20;
+    private static final double GRAPPLING_STRAIGHT_SPEED_MULTIPLIER = 1.25D;
+    private static final double GRAPPLING_MIN_SPEED = 1.8D;
     private static final double GRAVITY_CORE_RANGE = 7.0;
+    private static final long GRAVITY_CORE_PREVIEW_TIMEOUT_TICKS = 80L;
+    private static final double GRAVITY_CORE_PREVIEW_RING_RADIUS = 0.9D;
     private static final int MIRROR_DURATION_TICKS = 120;
     private static final byte FULL_SKIN_LAYER_MASK = 0x7F;
     private static final String DEFAULT_ULTIMATE_NAME = "Zeitanker";
@@ -149,6 +151,8 @@ public class AllActivePerks implements Listener {
     private static final HashMap<UUID, Boolean> ultimateReadyNotified = new HashMap<>();
     private static final HashMap<UUID, String> selectedUltimateByPlayer = new HashMap<>();
     private static final HashMap<UUID, BukkitTask> timeAnchorTasks = new HashMap<>();
+    private static final HashMap<UUID, BukkitTask> gravityCorePreviewTasks = new HashMap<>();
+    private static final HashMap<UUID, Location> gravityCorePreviewCenters = new HashMap<>();
     private static final HashMap<UUID, Long> overclockActiveUntil = new HashMap<>();
     private static final HashMap<UUID, Long> overclockOverheatUntil = new HashMap<>();
     private static final HashMap<UUID, HashMap<String, Long>> blockedPerksByPlayer = new HashMap<>();
@@ -209,6 +213,17 @@ public class AllActivePerks implements Listener {
         }
 
         Player player = (Player) projectile.getShooter();
+
+        if(projectile instanceof FishHook hook && isHoldingGrapplingHook(player)) {
+            if (denyPerkUseIfSilenced(player) || denyPerkUseByUltimateStates(player, "Grappling Hook")) {
+                event.setCancelled(true);
+                hook.remove();
+                return;
+            }
+
+            launchHookStraight(player, hook);
+            return;
+        }
 
         if(projectile.getType() == EntityType.SNOWBALL || projectile.getType() == EntityType.ENDER_PEARL ||
                 projectile.getType() == EntityType.ARROW || projectile.getType() == EntityType.EGG){
@@ -521,6 +536,16 @@ public class AllActivePerks implements Listener {
         event.setCancelled(true);
 
         int charge = getUltimateCharge(player);
+        String selectedUltimate = getSelectedUltimateName(player);
+
+        if ("Gravitationskern".equals(selectedUltimate)) {
+            if (handleGravityCorePreviewInput(player, charge)) {
+                return;
+            }
+        } else {
+            stopGravityCorePreview(player.getUniqueId());
+        }
+
         if (charge < ULTIMATE_MAX_CHARGE) {
             return;
         }
@@ -530,11 +555,169 @@ public class AllActivePerks implements Listener {
         }
     }
 
+    private boolean handleGravityCorePreviewInput(Player player, int charge) {
+        UUID playerId = player.getUniqueId();
+        BukkitTask previewTask = gravityCorePreviewTasks.get(playerId);
+
+        if (previewTask != null) {
+            Location previewCenter = gravityCorePreviewCenters.get(playerId);
+            stopGravityCorePreview(playerId);
+
+            if (charge < ULTIMATE_MAX_CHARGE) {
+                return true;
+            }
+
+            if (previewCenter == null) {
+                previewCenter = resolveGravityCoreCenter(player);
+            }
+
+            if (activateGravityCoreUltimate(player, previewCenter)) {
+                setUltimateCharge(player, 0);
+            }
+            return true;
+        }
+
+        if (charge < ULTIMATE_MAX_CHARGE) {
+            return true;
+        }
+
+        startGravityCorePreview(player);
+        return true;
+    }
+
+    private void startGravityCorePreview(Player player) {
+        UUID playerId = player.getUniqueId();
+        stopGravityCorePreview(playerId);
+
+        player.sendActionBar(Component.text("Gravitationskern Preview aktiv. Druecke F erneut zum Ausloesen.", NamedTextColor.AQUA));
+        player.playSound(player.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.8f, 1.35f);
+
+        BukkitTask previewTask = new BukkitRunnable() {
+            long livedTicks = 0L;
+
+            @Override
+            public void run() {
+                if (!LobbySystem.gameStarted || !player.isOnline() || player.getGameMode() != GameMode.SURVIVAL) {
+                    stopGravityCorePreview(playerId);
+                    cancel();
+                    return;
+                }
+
+                if (getUltimateCharge(player) < ULTIMATE_MAX_CHARGE) {
+                    stopGravityCorePreview(playerId);
+                    cancel();
+                    return;
+                }
+
+                Location center = resolveGravityCoreCenter(player);
+                gravityCorePreviewCenters.put(playerId, center.clone());
+                renderGravityCorePreview(player, center);
+
+                livedTicks += 1L;
+                if (livedTicks < GRAVITY_CORE_PREVIEW_TIMEOUT_TICKS) {
+                    return;
+                }
+
+                player.sendActionBar(Component.text("Gravitationskern Preview beendet.", NamedTextColor.GRAY));
+                stopGravityCorePreview(playerId);
+                cancel();
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, 1L);
+
+        gravityCorePreviewTasks.put(playerId, previewTask);
+    }
+
+    private void renderGravityCorePreview(Player player, Location center) {
+        World world = center.getWorld();
+        if (world == null) {
+            return;
+        }
+
+        Location markerCenter = center.clone().add(0, 0.1, 0);
+        Particle.DustOptions ringDust = new Particle.DustOptions(Color.fromRGB(88, 26, 124), 1.1f);
+        Particle.DustOptions lineDust = new Particle.DustOptions(Color.fromRGB(28, 28, 36), 0.9f);
+
+        for (int i = 0; i < 8; i++) {
+            double angle = (Math.PI * 2.0 * i) / 8.0;
+            double x = Math.cos(angle) * GRAVITY_CORE_PREVIEW_RING_RADIUS;
+            double z = Math.sin(angle) * GRAVITY_CORE_PREVIEW_RING_RADIUS;
+            Location ringPoint = markerCenter.clone().add(x, 0.02, z);
+            world.spawnParticle(Particle.DUST, ringPoint, 1, 0.0, 0.0, 0.0, 0.0, ringDust);
+        }
+
+        world.spawnParticle(Particle.END_ROD, markerCenter.clone().add(0, 0.25, 0), 2, 0.04, 0.07, 0.04, 0.0);
+        world.spawnParticle(Particle.DUST, markerCenter.clone().add(0, 0.45, 0), 2, 0.03, 0.08, 0.03, 0.0, ringDust);
+
+        Location eye = player.getEyeLocation();
+        Vector toCenter = markerCenter.toVector().subtract(eye.toVector());
+        double distance = toCenter.length();
+        if (distance <= 0.01) {
+            return;
+        }
+
+        int points = Math.max(4, Math.min(12, (int) Math.ceil(distance * 1.2)));
+        Vector step = toCenter.clone().multiply(1.0 / points);
+        Location stepLocation = eye.clone();
+        for (int i = 0; i < points; i++) {
+            stepLocation.add(step);
+            world.spawnParticle(Particle.DUST, stepLocation, 1, 0.0, 0.0, 0.0, 0.0, lineDust);
+        }
+    }
+
+    private static void stopGravityCorePreview(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+
+        BukkitTask previewTask = gravityCorePreviewTasks.remove(playerId);
+        if (previewTask != null) {
+            previewTask.cancel();
+        }
+
+        gravityCorePreviewCenters.remove(playerId);
+    }
+
+    private static void stopAllGravityCorePreviews() {
+        for (BukkitTask previewTask : gravityCorePreviewTasks.values()) {
+            if (previewTask != null) {
+                previewTask.cancel();
+            }
+        }
+
+        gravityCorePreviewTasks.clear();
+        gravityCorePreviewCenters.clear();
+    }
+
     private void anchorHook(FishHook hook, Location anchorLocation) {
         hook.teleport(anchorLocation);
         hook.setGravity(false);
         hook.setVelocity(new Vector(0, 0, 0));
         anchoredHookLocations.put(hook.getUniqueId(), anchorLocation.clone());
+    }
+
+    private void launchHookStraight(Player player, FishHook hook) {
+        Vector direction = player.getEyeLocation().getDirection().normalize();
+        double launchSpeed = Math.max(GRAPPLING_MIN_SPEED, hook.getVelocity().length() * GRAPPLING_STRAIGHT_SPEED_MULTIPLIER);
+
+        hook.setGravity(false);
+        hook.setVelocity(direction.clone().multiply(launchSpeed));
+
+        new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                if (!hook.isValid() || hook.isDead() || anchoredHookLocations.containsKey(hook.getUniqueId()) || ticks >= GRAPPLING_STRAIGHT_FLIGHT_TICKS) {
+                    cancel();
+                    return;
+                }
+
+                // Keep the hook trajectory straight for the first moments after launch.
+                hook.setGravity(false);
+                hook.setVelocity(direction.clone().multiply(launchSpeed));
+                ticks++;
+            }
+        }.runTaskTimer(Main.getInstance(), 1L, 1L);
     }
 
     private Location resolveHookAnchorLocation(Block hitBlock, BlockFace hitFace, Location fallback) {
@@ -710,6 +893,7 @@ public class AllActivePerks implements Listener {
             public void run() {
                 if (!LobbySystem.gameStarted) {
                     ultimateSessionInitialized = false;
+                    stopAllGravityCorePreviews();
                     return;
                 }
 
@@ -754,11 +938,16 @@ public class AllActivePerks implements Listener {
             boolean alreadyNotified = ultimateReadyNotified.getOrDefault(playerId, false);
             if (!alreadyNotified) {
                 String ultimateName = getSelectedUltimateName(player);
-                player.sendActionBar(Component.text(ultimateName + " ready! Press F to activate.", NamedTextColor.GOLD));
+                String activationHint = "Press F to activate.";
+                if ("Gravitationskern".equals(ultimateName)) {
+                    activationHint = "Press F to preview, F again to activate.";
+                }
+                player.sendActionBar(Component.text(ultimateName + " ready! " + activationHint, NamedTextColor.GOLD));
                 player.playSound(player.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1.0f, 1.4f);
                 ultimateReadyNotified.put(playerId, true);
             }
         } else {
+            stopGravityCorePreview(playerId);
             ultimateReadyNotified.put(playerId, false);
         }
     }
@@ -790,9 +979,7 @@ public class AllActivePerks implements Listener {
     }
 
     public static void refreshUltimateSelection(Player player) {
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerPerks");
-        Document document = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document document = PlayerDataCache.getPlayerPerks(player);
 
         String selectedUltimate = DEFAULT_ULTIMATE_NAME;
         if (document != null && document.get("ultimate") instanceof String) {
@@ -882,7 +1069,11 @@ public class AllActivePerks implements Listener {
     }
 
     private static boolean activateGravityCoreUltimate(Player player) {
-        Location center = resolveGravityCoreCenter(player);
+        return activateGravityCoreUltimate(player, null);
+    }
+
+    private static boolean activateGravityCoreUltimate(Player player, Location targetCenter) {
+        Location center = targetCenter != null ? targetCenter.clone() : resolveGravityCoreCenter(player);
         center.setY(center.getY() + 0.1);
 
         Particle.DustOptions darkDust = new Particle.DustOptions(Color.fromRGB(18, 18, 24), 1.4f);
@@ -2326,9 +2517,7 @@ public class AllActivePerks implements Listener {
     private static List<String> getSelectedActivePerkNames(Player player) {
         ArrayList<String> perkNames = new ArrayList<>();
 
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerPerks");
-        Document document = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document document = PlayerDataCache.getPlayerPerks(player);
         if (document == null) {
             return perkNames;
         }
@@ -3056,6 +3245,8 @@ public class AllActivePerks implements Listener {
 
         stasisTraps.remove(playerId);
         stasisTraps.entrySet().removeIf(entry -> entry.getValue().ownerId.equals(playerId));
+
+        stopGravityCorePreview(playerId);
 
         ultimateCharges.remove(playerId);
         ultimateReadyNotified.remove(playerId);

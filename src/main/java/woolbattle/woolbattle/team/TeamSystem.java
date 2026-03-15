@@ -42,6 +42,7 @@ import woolbattle.woolbattle.lobby.LobbySystem;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static woolbattle.woolbattle.Cache.getTeamMembers;
 
@@ -58,7 +59,7 @@ public class TeamSystem implements Listener {
         ArrayList<Player> onlinePlayers = new ArrayList<>(Bukkit.getOnlinePlayers());
         ArrayList<Player> teamLessPlayers = new ArrayList<>();
 
-        for (int i = Bukkit.getOnlinePlayers().size() - 1; i>=0; i--) {
+        for (int i = onlinePlayers.size() - 1; i>=0; i--) {
             Player player = onlinePlayers.get(i);
             if (TeamSystem.getPlayerTeam(player, true).equals("Not selected")) {
                 teamLessPlayers.add(player);
@@ -66,36 +67,41 @@ public class TeamSystem implements Listener {
         }
 
         for (int i = teamLessPlayers.size() - 1; i>=0; i--) {
+            Player teamLessPlayer = teamLessPlayers.get(i);
             int[] sizes = {
                     getTeamMembers().get("Red").size(),
                     getTeamMembers().get("Blue").size(),
                     getTeamMembers().get("Green").size(),
                     getTeamMembers().get("Yellow").size()
             };
-            int smallestNumber = 0;
-            int temp = sizes[0];
+            int smallestSize = Integer.MAX_VALUE;
+            ArrayList<Integer> smallestTeams = new ArrayList<>();
             for(int a=0;a<sizes.length;a++) {
-                if(sizes[a] <= temp) {
-                    temp = sizes[a];
-                    smallestNumber = a;
+                if(sizes[a] < smallestSize) {
+                    smallestSize = sizes[a];
+                    smallestTeams.clear();
+                    smallestTeams.add(a);
+                }
+                else if (sizes[a] == smallestSize) {
+                    smallestTeams.add(a);
                 }
             }
+            int smallestNumber = smallestTeams.get(ThreadLocalRandom.current().nextInt(smallestTeams.size()));
             switch (smallestNumber){
                 case 0:
-                    (getTeamMembers().get("Red")).add(teamLessPlayers.get(i));
-                    teamLessPlayers.get(i).sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("red", NamedTextColor.RED)).append(Component.text("!", NamedTextColor.GRAY)));
+                    (getTeamMembers().get("Red")).add(teamLessPlayer);
+                    teamLessPlayer.sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("red", NamedTextColor.RED)).append(Component.text("!", NamedTextColor.GRAY)));
                     break;
-                case 1: (getTeamMembers().get("Blue")).add(teamLessPlayers.get(i));
-                    teamLessPlayers.get(i).sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("blue", NamedTextColor.DARK_BLUE)).append(Component.text("!", NamedTextColor.GRAY)));
+                case 1: (getTeamMembers().get("Blue")).add(teamLessPlayer);
+                    teamLessPlayer.sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("blue", NamedTextColor.DARK_BLUE)).append(Component.text("!", NamedTextColor.GRAY)));
                     break;
-                case 2: (getTeamMembers().get("Green")).add(teamLessPlayers.get(i));
-                    teamLessPlayers.get(i).sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("green", NamedTextColor.DARK_GREEN)).append(Component.text("!", NamedTextColor.GRAY)));
+                case 2: (getTeamMembers().get("Green")).add(teamLessPlayer);
+                    teamLessPlayer.sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("green", NamedTextColor.DARK_GREEN)).append(Component.text("!", NamedTextColor.GRAY)));
                     break;
-                case 3: (getTeamMembers().get("Yellow")).add(teamLessPlayers.get(i));
-                    teamLessPlayers.get(i).sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("yellow", NamedTextColor.YELLOW)).append(Component.text("!", NamedTextColor.GRAY)));
+                case 3: (getTeamMembers().get("Yellow")).add(teamLessPlayer);
+                    teamLessPlayer.sendMessage(Component.text("You didn't enter a team so you were put into team ", NamedTextColor.GRAY).append(Component.text("yellow", NamedTextColor.YELLOW)).append(Component.text("!", NamedTextColor.GRAY)));
                     break;
             }
-            teamLessPlayers.remove(teamLessPlayers.get(i));
         }
         int[] sizes = {
                 getTeamMembers().get("Red").size(),
@@ -117,7 +123,7 @@ public class TeamSystem implements Listener {
 
         if (numActiveTeams < 2) {
             int size = getTeamMembers().get(teamWithMembers).size();
-            if (size / 2 != 0) {
+            if (size >= 2) {
 
                 ArrayList<Player> member = getTeamMembers().get(teamWithMembers);
 

@@ -44,6 +44,29 @@ import static com.mongodb.client.model.Filters.eq;
 
 public class AchievementUI {
 
+    private static ArrayList<String> getPlayerAchievements(Player player, MongoCollection<Document> collection) {
+        String playerId = player.getUniqueId().toString();
+        Document foundDocument = collection.find(eq("_id", playerId)).first();
+
+        if (foundDocument == null) {
+            Document document = new Document("_id", playerId).append("achievements", new ArrayList<String>());
+            collection.insertOne(document);
+            return new ArrayList<>();
+        }
+
+        ArrayList<String> achievements = new ArrayList<>();
+        Object rawAchievements = foundDocument.get("achievements");
+        if (rawAchievements instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                if (entry instanceof String) {
+                    achievements.add((String) entry);
+                }
+            }
+        }
+
+        return achievements;
+    }
+
     /** A function which creates the GUI which contains the Achievements.
      * @param player - A handle to the player object which is passed by a function in LobbySystem. The parameter is the player which has clicked the item in order to open the GUI.
      * @author Beelzebub
@@ -51,7 +74,7 @@ public class AchievementUI {
     public static void showAchievementGUI(Player player) {
         MongoDatabase db = Main.getMongoDatabase();
         MongoCollection<Document> collection = db.getCollection("playerAchievements");
-        ArrayList<String> arrayList = (ArrayList<String>) collection.find(eq("_id", player.getUniqueId().toString())).first().get("achievements");
+        ArrayList<String> arrayList = getPlayerAchievements(player, collection);
         Inventory achievements = Bukkit.createInventory(null, 27, Component.text("Achievements", NamedTextColor.GOLD));
 
         //adding glass

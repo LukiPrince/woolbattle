@@ -23,9 +23,12 @@ public class BlockBreakingSystem {
     private static String mapChunksId() { return "mapChunks_" + MapConfig.mapName; }
 
     private static ArrayList<Location> mapBlocks = new ArrayList<>();
+    private static final HashSet<Location> mapBlocksLookup = new HashSet<>();
     private static boolean collectBrokenBlocks = false;
     private static ArrayList<Location> removedBlocks = new ArrayList<>();
+    private static final HashSet<Location> removedBlocksLookup = new HashSet<>();
     private static ArrayList<Location> placedBlocks = new ArrayList<>();
+    private static final HashSet<Location> placedBlocksLookup = new HashSet<>();
 
 
     //Setter and getter, concerning the previously defined private variables
@@ -34,22 +37,112 @@ public class BlockBreakingSystem {
     public static void setCollectBrokenBlocks(boolean collectBrokenBlocksArg) {collectBrokenBlocks = collectBrokenBlocksArg;}
 
     public static ArrayList<Location> getMapBlocks() {return mapBlocks;}
-    public static void setMapBlocks(ArrayList<Location> mapBlocksArg) {mapBlocks = mapBlocksArg;}
+    public static void setMapBlocks(ArrayList<Location> mapBlocksArg) {
+        mapBlocks = mapBlocksArg != null ? mapBlocksArg : new ArrayList<>();
+        mapBlocksLookup.clear();
+        mapBlocksLookup.addAll(mapBlocks);
+    }
+
+    public static boolean isMapBlock(Location location) {
+        if (location == null) {
+            return false;
+        }
+
+        if (mapBlocksLookup.contains(location)) {
+            return true;
+        }
+
+        if (mapBlocks.contains(location)) {
+            mapBlocksLookup.add(location);
+            return true;
+        }
+
+        return false;
+    }
+
+    public static boolean addMapBlock(Location location) {
+        if (location == null || !mapBlocksLookup.add(location)) {
+            return false;
+        }
+
+        mapBlocks.add(location);
+        return true;
+    }
+
+    public static boolean removeMapBlock(Location location) {
+        if (location == null) {
+            return false;
+        }
+
+        boolean removedLookup = mapBlocksLookup.remove(location);
+        boolean removedList = mapBlocks.remove(location);
+        return removedLookup || removedList;
+    }
 
     public static ArrayList<Location> getRemovedBlocks() {return removedBlocks;}
-    public static void setRemovedBlocks(ArrayList<Location> removedBlocks) {BlockBreakingSystem.removedBlocks = removedBlocks;}
+    public static void setRemovedBlocks(ArrayList<Location> removedBlocks) {
+        BlockBreakingSystem.removedBlocks = removedBlocks != null ? removedBlocks : new ArrayList<>();
+        removedBlocksLookup.clear();
+        removedBlocksLookup.addAll(BlockBreakingSystem.removedBlocks);
+    }
 
-    public static void trackPlacedBlock(Location location) {placedBlocks.add(location);}
+    public static boolean addRemovedBlock(Location location) {
+        if (location == null || !removedBlocksLookup.add(location)) {
+            return false;
+        }
 
-    public static boolean isPlacedBlock(Location location) {return placedBlocks.contains(location);}
+        removedBlocks.add(location);
+        return true;
+    }
 
-    public static void removePlacedBlock(Location location) {placedBlocks.remove(location);}
+    public static boolean removeRemovedBlock(Location location) {
+        if (location == null) {
+            return false;
+        }
+
+        boolean removedLookup = removedBlocksLookup.remove(location);
+        boolean removedList = removedBlocks.remove(location);
+        return removedLookup || removedList;
+    }
+
+    public static void trackPlacedBlock(Location location) {
+        if (location != null && placedBlocksLookup.add(location)) {
+            placedBlocks.add(location);
+        }
+    }
+
+    public static boolean isPlacedBlock(Location location) {
+        if (location == null) {
+            return false;
+        }
+
+        if (placedBlocksLookup.contains(location)) {
+            return true;
+        }
+
+        if (placedBlocks.contains(location)) {
+            placedBlocksLookup.add(location);
+            return true;
+        }
+
+        return false;
+    }
+
+    public static void removePlacedBlock(Location location) {
+        if (location == null) {
+            return;
+        }
+
+        placedBlocksLookup.remove(location);
+        placedBlocks.remove(location);
+    }
 
     public static void clearPlacedBlocks() {
         for (Location loc : placedBlocks) {
             loc.getBlock().setType(Material.AIR);
         }
         placedBlocks.clear();
+        placedBlocksLookup.clear();
     }
 
 
@@ -76,7 +169,8 @@ public class BlockBreakingSystem {
      */
     public static void fetchMapBlocks() {
         MongoDatabase db = Main.getMongoClient().getDatabase("woolbattle");
-        ArrayList<Location> updatedMapBlocks = mapBlocks;
+        ArrayList<Location> updatedMapBlocks = new ArrayList<>(mapBlocks);
+        HashSet<Location> knownBlocks = new HashSet<>(mapBlocksLookup);
         String id = mapBlocksId();
 
         //Checks, whether the "map" collection and the "mapBlocks" documents exist in the db, creates them, if this is not the case.
@@ -105,10 +199,9 @@ public class BlockBreakingSystem {
                         argArray.get(1),
                         argArray.get(2)
                 );
-                if(updatedMapBlocks.contains(location)){
-                    continue;
+                if(knownBlocks.add(location)){
+                    updatedMapBlocks.add(location);
                 }
-                updatedMapBlocks.add(location);
             }
         }
 
@@ -163,7 +256,7 @@ public class BlockBreakingSystem {
                     ? Bukkit.getWorld(MapConfig.gameWorldName) : Bukkit.getWorlds().get(0);
             update.removeIf(locArray -> {
                 Location loc = new Location(gameWorld, locArray.get(0), locArray.get(1), locArray.get(2));
-                return removedBlocks.contains(loc);
+                return removedBlocksLookup.contains(loc);
             });
 
             //Replaces the mapBlocksArray in the db with the previously-prepared one (update).
@@ -273,7 +366,7 @@ public class BlockBreakingSystem {
         }
         //Similar approach regarding ydiff and ys.
         if(Integer.signum(ydiff) == 0){
-            xs.add((int) b.getX());
+            ys.add((int) b.getY());
         }else{
             for(int i = (int) b.getY();((Integer.signum(ydiff)) == -1)? (i>a.getY()) : (i<a.getY()); i += Integer.signum(ydiff)){
                 ys.add(i);
@@ -300,9 +393,7 @@ public class BlockBreakingSystem {
         }
         //Adds locations, constituted by the former created value pairs (of xs, ys, and zs), to the global mapBlocks array.
         for(Location l : locs){
-            if(!mapBlocks.contains(l)){
-                mapBlocks.add(l);
-            }
+            addMapBlock(l);
         }
     }
 
@@ -326,7 +417,6 @@ public class BlockBreakingSystem {
         }
         World world = (MapConfig.gameWorldName != null && Bukkit.getWorld(MapConfig.gameWorldName) != null)
                 ? Bukkit.getWorld(MapConfig.gameWorldName) : Bukkit.getWorlds().get(0);
-        HashSet<Location> mapBlocksSet = new HashSet<>(mapBlocks);
         for(ArrayList<Long> chunkCoords : mapChunks){
             Chunk chunk = world.getChunkAt( (int) (long) chunkCoords.get(0), (int) (long) chunkCoords.get(1));
             for(int x = 0;x<16;x++){
@@ -336,7 +426,7 @@ public class BlockBreakingSystem {
                         if(!WoolHelper.isWool(block.getType())){
                             continue;
                         }
-                        if(mapBlocksSet.contains(block.getLocation())){
+                        if(mapBlocksLookup.contains(block.getLocation())){
                             continue;
                         }
 

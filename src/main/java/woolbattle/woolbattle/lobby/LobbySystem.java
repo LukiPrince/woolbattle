@@ -60,6 +60,7 @@ import woolbattle.woolbattle.Config;
 import woolbattle.woolbattle.MapConfig;
 import woolbattle.woolbattle.Enums.PerkType;
 import woolbattle.woolbattle.Main;
+import woolbattle.woolbattle.PlayerDataCache;
 import woolbattle.woolbattle.achievements.AchievementUI;
 import woolbattle.woolbattle.itemsystem.ItemSystem;
 import woolbattle.woolbattle.perks.ActivePerk;
@@ -72,7 +73,6 @@ import woolbattle.woolbattle.woolsystem.BlockBreakingSystem;
 
 import java.util.*;
 
-import static com.mongodb.client.model.Filters.eq;
 import static woolbattle.woolbattle.lives.LivesSystem.setPlayerSpawnProtection;
 import static woolbattle.woolbattle.stats.StatsSystem.addDefaultStats;
 
@@ -157,10 +157,7 @@ public class LobbySystem implements Listener {
     }
 
     private static String getSelectedPassivePerk(Player player) {
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerPerks");
-
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document foundDocument = PlayerDataCache.getPlayerPerks(player);
         if(foundDocument == null) {
             return null;
         }
@@ -170,10 +167,7 @@ public class LobbySystem implements Listener {
     }
 
     private static String getSelectedUltimate(Player player) {
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerPerks");
-
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document foundDocument = PlayerDataCache.getPlayerPerks(player);
         if (foundDocument != null && foundDocument.get("ultimate") instanceof String) {
             String selected = (String) foundDocument.get("ultimate");
             if (AllActivePerks.isUltimateName(selected)) {
@@ -253,6 +247,7 @@ public class LobbySystem implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        PlayerDataCache.invalidatePlayer(player);
 
         // Clear advancements and recipe book
         java.util.Iterator<org.bukkit.advancement.Advancement> advIter = Bukkit.advancementIterator();
@@ -303,6 +298,7 @@ public class LobbySystem implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
+        PlayerDataCache.invalidatePlayer(player);
 
         event.quitMessage(Component.text("The player ", NamedTextColor.GRAY)
                 .append(Component.text(player.getName(), NamedTextColor.GREEN))
@@ -620,7 +616,7 @@ public class LobbySystem implements Listener {
                     giveLobbyItems(player);
                 }
 
-            }.runTaskLaterAsynchronously(Main.getInstance(), 10);
+            }.runTaskLater(Main.getInstance(), 10);
             player.sendMessage(Component.text("Something went wrong!", NamedTextColor.RED));
             return;
         }
@@ -629,7 +625,7 @@ public class LobbySystem implements Listener {
         MongoDatabase db = Main.getMongoDatabase();
         MongoCollection<Document> collection = db.getCollection("playerInventories");
 
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document foundDocument = PlayerDataCache.getPlayerInventories(player);
         if(foundDocument == null){
             HashMap<String, Object> playerData = new HashMap<String, Object>(){{
                 put("_id", player.getUniqueId().toString());
@@ -642,6 +638,7 @@ public class LobbySystem implements Listener {
 
             Document document = new Document(playerData);
             collection.insertOne(document);
+            PlayerDataCache.putPlayerInventories(player, document);
         }
         else{
             Document query = new Document().append("_id",  player.getUniqueId().toString());
@@ -655,6 +652,14 @@ public class LobbySystem implements Listener {
             );
 
             collection.updateOne(query, updates);
+
+            Document updatedDocument = new Document(foundDocument);
+            updatedDocument.put("shears", finalShearsPosition);
+            updatedDocument.put("bow", finalBowPosition);
+            updatedDocument.put("ender_pearl", finalEnderPearlPosition);
+            updatedDocument.put("active_perk1", finalActivePerk1Position);
+            updatedDocument.put("active_perk2", finalActivePerk2Position);
+            PlayerDataCache.putPlayerInventories(player, updatedDocument);
         }
 
         player.sendMessage(Component.text("Your new inventory was successfully saved.", NamedTextColor.GREEN));
@@ -666,7 +671,7 @@ public class LobbySystem implements Listener {
                 giveLobbyItems(player);
             }
 
-        }.runTaskLaterAsynchronously(Main.getInstance(), 10);
+        }.runTaskLater(Main.getInstance(), 10);
     }
 
     /**
@@ -873,7 +878,7 @@ public class LobbySystem implements Listener {
         MongoDatabase db = Main.getMongoDatabase();
         MongoCollection<Document> collection = db.getCollection("playerPerks");
 
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document foundDocument = PlayerDataCache.getPlayerPerks(player);
         if(foundDocument == null){
 
             HashMap<String, Object> playerData = new HashMap<String, Object>(){{
@@ -888,6 +893,7 @@ public class LobbySystem implements Listener {
 
             Document document = new Document(playerData);
             collection.insertOne(document);
+            PlayerDataCache.putPlayerPerks(player, document);
 
             if(perkType == PerkType.ULTIMATE){
                 AllActivePerks.refreshUltimateSelection(player);
@@ -914,6 +920,10 @@ public class LobbySystem implements Listener {
             Bson updates = Updates.set(perkTypeString, perkName);
 
             collection.updateOne(query, updates);
+
+            Document updatedDocument = new Document(foundDocument);
+            updatedDocument.put(perkTypeString, perkName);
+            PlayerDataCache.putPlayerPerks(player, updatedDocument);
 
             if(perkType == PerkType.ULTIMATE){
                 AllActivePerks.refreshUltimateSelection(player);
@@ -1060,10 +1070,7 @@ public class LobbySystem implements Listener {
         int activePerk1Slot;
         int activePerk2Slot;
 
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerInventories");
-
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document foundDocument = PlayerDataCache.getPlayerInventories(player);
         if(foundDocument == null){
             shearsSlot = 9;
             bowSlot = 10;
@@ -1134,9 +1141,7 @@ public class LobbySystem implements Listener {
         String passiveSelection = getSelectedPassivePerk(player);
         String ultimateSelection = getSelectedUltimate(player);
 
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerPerks");
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document foundDocument = PlayerDataCache.getPlayerPerks(player);
         if(foundDocument != null){
             Object first = foundDocument.get("first_active");
             if(first instanceof String && Cache.getActivePerks().containsKey(first)){
@@ -1223,10 +1228,7 @@ public class LobbySystem implements Listener {
         String perkTypeString = perkType.toString().toLowerCase();
         String selectedPerk = null;
 
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerPerks");
-
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document foundDocument = PlayerDataCache.getPlayerPerks(player);
         if(foundDocument != null){
             if(foundDocument.get(perkTypeString) != null){
                 selectedPerk = (String) foundDocument.get(perkTypeString);

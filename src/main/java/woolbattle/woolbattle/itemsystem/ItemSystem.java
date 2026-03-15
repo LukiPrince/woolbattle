@@ -24,8 +24,6 @@
 
 package woolbattle.woolbattle.itemsystem;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bson.Document;
@@ -42,6 +40,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import woolbattle.woolbattle.WoolHelper;
 import woolbattle.woolbattle.Cache;
 import woolbattle.woolbattle.Main;
+import woolbattle.woolbattle.PlayerDataCache;
 import woolbattle.woolbattle.lobby.LobbySystem;
 import woolbattle.woolbattle.perks.ActivePerk;
 import woolbattle.woolbattle.perks.AllPassivePerks;
@@ -49,8 +48,6 @@ import woolbattle.woolbattle.perks.PassivePerk;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
-import static com.mongodb.client.model.Filters.eq;
 import static woolbattle.woolbattle.team.TeamSystem.findTeamColor;
 import static woolbattle.woolbattle.team.TeamSystem.findTeamDyeColor;
 
@@ -95,10 +92,7 @@ public class ItemSystem {
         int perk2Slot;
         int passivePerkSlot = 27;
 
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerInventories");
-
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document foundDocument = PlayerDataCache.getPlayerInventories(player);
         if(foundDocument == null){
             shearsSlot = defaultSlots.get("shears");
             bowSlot = defaultSlots.get("bow");
@@ -126,9 +120,7 @@ public class ItemSystem {
 
         inventory.setItem(enderPearlSlot, enderPearl);
 
-        MongoCollection<Document> perksCollection = db.getCollection("playerPerks");
-
-        Document perksDocument = perksCollection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document perksDocument = PlayerDataCache.getPlayerPerks(player);
 
         if(perksDocument != null) {
 
@@ -291,44 +283,38 @@ public class ItemSystem {
      * @author Servaturus & SimsumMC
      */
     public static void setItemCooldown(Player p, int slot, ItemStack item, int cooldownInSeconds){
+        ItemStack expiredItem = new ItemStack(Material.GUNPOWDER){
+            {
+                ItemMeta meta = getItemMeta();
+                meta.displayName(Component.text("Item on Cooldown", NamedTextColor.RED));
+                setItemMeta(meta);
+            }
+        };
+
         new BukkitRunnable(){
+
+            int loops = 0;
+
             @Override
             public void run() {
+                if(!LobbySystem.gameStarted){
+                    this.cancel();
+                    return;
+                }
 
-                ItemStack expiredItem = new ItemStack(Material.GUNPOWDER){
-                    {
-                        ItemMeta meta = getItemMeta();
-                        meta.displayName(Component.text("Item on Cooldown", NamedTextColor.RED));
-                        setItemMeta(meta);
+                if(loops == cooldownInSeconds){
+                    if(item.getAmount() < 1){
+                        item.setAmount(item.getAmount() + 1);
                     }
-                };
+                    p.getInventory().setItem(slot, item);
+                    this.cancel();
+                }else{
+                    expiredItem.setAmount((cooldownInSeconds - loops));
+                    p.getInventory().setItem(slot,expiredItem);
+                    loops++;
 
-                new BukkitRunnable(){
-
-                    int loops = 0;
-
-                    @Override
-                    public void run() {
-                        if(!LobbySystem.gameStarted){
-                            this.cancel();
-                            return;
-                        }
-
-                        if(loops == cooldownInSeconds){
-                            if(item.getAmount() < 1){
-                                item.setAmount(item.getAmount() + 1);
-                            }
-                            p.getInventory().setItem(slot, item);
-                            this.cancel();
-                        }else{
-                            expiredItem.setAmount((cooldownInSeconds - loops));
-                            p.getInventory().setItem(slot,expiredItem);
-                            loops++;
-
-                        }
-                    }
-                }.runTaskTimer(Main.getInstance(), 0, 20);
+                }
             }
-        }.runTaskAsynchronously(Main.getInstance());
+        }.runTaskTimer(Main.getInstance(), 0, 20);
     }
 }
