@@ -92,7 +92,9 @@ public class StatsSystem {
     public static void saveAllPlayerStats(String winnerTeam){
         HashMap<Player, HashMap<String, Integer>> playerStats = Cache.getPlayerStats();
 
-        for(Player player : Cache.getTeamMembers().get(winnerTeam.substring(2))){
+        java.util.ArrayList<Player> winners = Cache.getTeamMembers().get(winnerTeam);
+        if (winners == null) return;
+        for(Player player : winners){
             HashMap<String, Integer> stats = playerStats.get(player);
             stats.put("wins", 1);
             playerStats.put(player, stats);

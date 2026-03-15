@@ -117,6 +117,22 @@ public class LobbySystem implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
+        // Clear advancements and recipe book
+        java.util.Iterator<org.bukkit.advancement.Advancement> advIter = Bukkit.advancementIterator();
+        while (advIter.hasNext()) {
+            org.bukkit.advancement.AdvancementProgress progress = player.getAdvancementProgress(advIter.next());
+            for (String criteria : progress.getAwardedCriteria()) {
+                progress.revokeCriteria(criteria);
+            }
+        }
+        java.util.List<org.bukkit.NamespacedKey> recipeKeys = new java.util.ArrayList<>();
+        Bukkit.recipeIterator().forEachRemaining(recipe -> {
+            if (recipe instanceof org.bukkit.Keyed keyed) {
+                recipeKeys.add(keyed.getKey());
+            }
+        });
+        player.undiscoverRecipes(recipeKeys);
+
         event.joinMessage(Component.text("The player ", NamedTextColor.GRAY)
                 .append(Component.text(player.getName(), NamedTextColor.GREEN))
                 .append(Component.text(" joined the game.", NamedTextColor.GRAY)));
@@ -489,6 +505,10 @@ public class LobbySystem implements Listener {
             return false;
         }
 
+        // Clean up any leftover blocks from a previous game (e.g. server crashed)
+        BlockBreakingSystem.clearPlacedBlocks();
+        BlockBreakingSystem.resetMap();
+
         ActivePerk.loadActivePerkSlots();
 
         AllPassivePerks.assignPlayersToPerks();
@@ -590,6 +610,15 @@ public class LobbySystem implements Listener {
         updateScoreBoard();
         BlockBreakingSystem.clearPlacedBlocks();
         BlockBreakingSystem.resetMap();
+
+        // Remove all projectiles (arrows, eggs, etc.) from the game world
+        org.bukkit.World gameWorld = (MapConfig.gameWorldName != null && Bukkit.getWorld(MapConfig.gameWorldName) != null)
+                ? Bukkit.getWorld(MapConfig.gameWorldName) : Bukkit.getWorlds().get(0);
+        for (org.bukkit.entity.Entity entity : gameWorld.getEntities()) {
+            if (entity instanceof org.bukkit.entity.Projectile) {
+                entity.remove();
+            }
+        }
         return true;
     }
 
@@ -1186,7 +1215,8 @@ public class LobbySystem implements Listener {
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         Scoreboard board = manager.getNewScoreboard();
 
-        Objective obj = board.registerNewObjective("Lobby", "dummy", "§a§lWoolbattle");
+        Objective obj = board.registerNewObjective("Lobby", "dummy", "§e§lWOOL§6§lBATTLE");
+        obj.numberFormat(io.papermc.paper.scoreboard.numbers.NumberFormat.blank());
 
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
@@ -1195,37 +1225,37 @@ public class LobbySystem implements Listener {
         Team lives = board.registerNewTeam("lives");
         Team players = board.registerNewTeam("players");
 
-        obj.getScore("\u1CBC\u1CBC\u1CBC\u1CBC").setScore(11);
+        obj.getScore("§8§m                         ").setScore(9);
+        obj.getScore("§0").setScore(8);
 
-        obj.getScore("§7»Team").setScore(10);
-        obj.getScore("§c").setScore(9);
+        obj.getScore("§c").setScore(7);
 
-        obj.getScore("\u1CBC\u1CBC\u1CBC").setScore(8);
+        obj.getScore("§1").setScore(6);
 
-        obj.getScore("§7»Map").setScore(7);
-        obj.getScore("§d").setScore(6);
+        obj.getScore("§d").setScore(5);
 
-        obj.getScore("\u1CBC\u1CBC").setScore(5);
+        obj.getScore("§3").setScore(4);
 
-        obj.getScore("§7»Amount of Lives").setScore(4);
-        obj.getScore("§e").setScore(3);
+        obj.getScore("§a").setScore(3);
 
-        obj.getScore("\u1CBC").setScore(2);
+        obj.getScore("§5").setScore(2);
 
-        obj.getScore("§7»Players").setScore(1);
-        obj.getScore("§b").setScore(0);
+        obj.getScore("§b").setScore(1);
 
+        obj.getScore("§7§m                         ").setScore(0);
+
+        String teamName = TeamSystem.getPlayerTeam(player, false);
         team.addEntry("§c");
-        team.setPrefix(TeamSystem.getPlayerTeam(player, false));
+        team.setPrefix("§7 Team §8» " + (teamName.isEmpty() ? "§8None" : teamName));
 
         map.addEntry("§d");
-        map.setPrefix("§d" + MapConfig.mapName);
+        map.setPrefix("§7 Map §8» §e" + MapConfig.mapName);
 
-        lives.addEntry("§e");
-        lives.setPrefix("§e" + Config.defaultLives);
+        lives.addEntry("§a");
+        lives.setPrefix("§7 Lives §8» §a" + Config.defaultLives);
 
         players.addEntry("§b");
-        players.setPrefix("§b" + actualPlayers + "/" + maxPlayers);
+        players.setPrefix("§7 Players §8» §b" + actualPlayers + "§8/§b" + maxPlayers);
 
         player.setScoreboard(board);
 
@@ -1249,10 +1279,11 @@ public class LobbySystem implements Listener {
         Team lives = board.getTeam("lives");
         Team players = board.getTeam("players");
 
-        team.setPrefix(TeamSystem.getPlayerTeam(player, false));
-        map.setPrefix("§d" + MapConfig.mapName);
-        lives.setPrefix("§e" + getTopVotedLifeAmount());
-        players.setPrefix("§b" + actualPlayers + "/" + maxPlayers);
+        String teamName = TeamSystem.getPlayerTeam(player, false);
+        team.setPrefix("§7 Team §8» " + (teamName.isEmpty() ? "§8None" : teamName));
+        map.setPrefix("§7 Map §8» §e" + MapConfig.mapName);
+        lives.setPrefix("§7 Lives §8» §a" + getTopVotedLifeAmount());
+        players.setPrefix("§7 Players §8» §b" + actualPlayers + "§8/§b" + maxPlayers);
 
     }
 
@@ -1266,7 +1297,8 @@ public class LobbySystem implements Listener {
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         Scoreboard board = manager.getNewScoreboard();
 
-        Objective obj = board.registerNewObjective("Game", "dummy", "§a§lWoolbattle");
+        Objective obj = board.registerNewObjective("Game", "dummy", "§e§lWOOL§6§lBATTLE");
+        obj.numberFormat(io.papermc.paper.scoreboard.numbers.NumberFormat.blank());
 
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
@@ -1278,30 +1310,31 @@ public class LobbySystem implements Listener {
         Team greenTeam = board.registerNewTeam("greenTeam");
         Team yellowTeam = board.registerNewTeam("yellowTeam");
 
-        obj.getScore("\u1CBC\u1CBC\u1CBC").setScore(11);
+        obj.getScore("§8§m                         ").setScore(11);
+        obj.getScore("§0").setScore(10);
 
-        obj.getScore("§7»Team").setScore(10);
         obj.getScore("§c").setScore(9);
 
-        obj.getScore("\u1CBC\u1CBC").setScore(8);
+        obj.getScore("§1").setScore(8);
 
-        obj.getScore("§7»Map").setScore(7);
-        obj.getScore("§d").setScore(6);
+        obj.getScore("§d").setScore(7);
 
-        obj.getScore("\u1CBC").setScore(5);
+        obj.getScore("§3").setScore(6);
 
-        obj.getScore("§7»Lives").setScore(4);
+        obj.getScore("§4").setScore(5);
+        obj.getScore("§9").setScore(4);
+        obj.getScore("§2").setScore(3);
+        obj.getScore("§6").setScore(2);
 
-        obj.getScore("§4").setScore(3);
-        obj.getScore("§9").setScore(2);
-        obj.getScore("§2").setScore(1);
-        obj.getScore("§e").setScore(0);
+        obj.getScore("§5").setScore(1);
+        obj.getScore("§7§m                         ").setScore(0);
 
+        String teamName = TeamSystem.getPlayerTeam(player, false);
         team.addEntry("§c");
-        team.setPrefix(TeamSystem.getPlayerTeam(player,false));
+        team.setPrefix("§7 Team §8» " + (teamName.isEmpty() ? "§8None" : teamName));
 
         map.addEntry("§d");
-        map.setPrefix("§d" + MapConfig.mapName);
+        map.setPrefix("§7 Map §8» §e" + MapConfig.mapName);
 
         HashMap<String, Integer> teamLives = Cache.getTeamLives();
         int redLives = teamLives.get("Red");
@@ -1310,16 +1343,16 @@ public class LobbySystem implements Listener {
         int yellowLives = teamLives.get("Yellow");
 
         redTeam.addEntry("§4");
-        redTeam.setPrefix("§4❤ " + redLives);
+        redTeam.setPrefix("§c ■ §fRed §8» §c" + redLives);
 
         blueTeam.addEntry("§9");
-        blueTeam.setPrefix("§9❤ " + blueLives);
+        blueTeam.setPrefix("§9 ■ §fBlue §8» §9" + blueLives);
 
         greenTeam.addEntry("§2");
-        greenTeam.setPrefix("§2❤ " + greenLives);
+        greenTeam.setPrefix("§a ■ §fGreen §8» §a" + greenLives);
 
-        yellowTeam.addEntry("§e");
-        yellowTeam.setPrefix("§e❤ " + yellowLives);
+        yellowTeam.addEntry("§6");
+        yellowTeam.setPrefix("§e ■ §fYellow §8» §e" + yellowLives);
 
         player.setScoreboard(board);
 
@@ -1343,8 +1376,9 @@ public class LobbySystem implements Listener {
         Team greenTeam = board.getTeam("greenTeam");
         Team yellowTeam = board.getTeam("yellowTeam");
 
-        team.setPrefix(TeamSystem.getPlayerTeam(player,false));
-        map.setPrefix("§d" + MapConfig.mapName);
+        String teamName = TeamSystem.getPlayerTeam(player, false);
+        team.setPrefix("§7 Team §8» " + (teamName.isEmpty() ? "§8None" : teamName));
+        map.setPrefix("§7 Map §8» §e" + MapConfig.mapName);
 
         HashMap<String, Integer> teamLives = Cache.getTeamLives();
         int redLives = teamLives.get("Red");
@@ -1352,9 +1386,9 @@ public class LobbySystem implements Listener {
         int greenLives = teamLives.get("Green");
         int yellowLives = teamLives.get("Yellow");
 
-        redTeam.setPrefix("§4❤ " + redLives);
-        blueTeam.setPrefix("§9❤ " + blueLives);
-        greenTeam.setPrefix("§2❤ " + greenLives);
-        yellowTeam.setPrefix("§e❤ " + yellowLives);
+        redTeam.setPrefix("§c ■ §fRed §8» §c" + redLives);
+        blueTeam.setPrefix("§9 ■ §fBlue §8» §9" + blueLives);
+        greenTeam.setPrefix("§a ■ §fGreen §8» §a" + greenLives);
+        yellowTeam.setPrefix("§e ■ §fYellow §8» §e" + yellowLives);
     }
 }

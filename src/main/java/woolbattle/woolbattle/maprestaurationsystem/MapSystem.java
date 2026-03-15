@@ -27,6 +27,7 @@ package woolbattle.woolbattle.maprestaurationsystem;
 import org.bson.Document;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import woolbattle.woolbattle.MapConfig;
 import woolbattle.woolbattle.Main;
 import java.util.ArrayList;
 import static com.mongodb.client.model.Filters.eq;
@@ -34,18 +35,21 @@ import static com.mongodb.client.model.Filters.eq;
 
 public class MapSystem {
 
-    public static void defineMapChunks(ArrayList<ArrayList<Long>> chunks){
+    private static String mapChunksId() { return "mapChunks_" + MapConfig.mapName; }
 
-        if(Main.getMongoDatabase().getCollection("map").find(eq("_id", "mapChunks")).first() == null){
-            Main.getMongoDatabase().getCollection("map").insertOne(new Document("_id", "mapChunks").append("chunks", new ArrayList<ArrayList<Long>>()));
+    public static void defineMapChunks(ArrayList<ArrayList<Long>> chunks){
+        String id = mapChunksId();
+
+        if(Main.getMongoDatabase().getCollection("map").find(eq("_id", id)).first() == null){
+            Main.getMongoDatabase().getCollection("map").insertOne(new Document("_id", id).append("chunks", new ArrayList<ArrayList<Long>>()));
         }
 
         ArrayList<ArrayList<Long>> dbChunks;
         try{
-            dbChunks = (ArrayList<ArrayList<Long>>) Main.getMongoDatabase().getCollection("map").find(eq("_id", "mapChunks")).first().get("chunks");
+            dbChunks = (ArrayList<ArrayList<Long>>) Main.getMongoDatabase().getCollection("map").find(eq("_id", id)).first().get("chunks");
 
         }catch(ClassCastException e){
-            System.out.println("The value of the chunks, belonging to the map, stored in the database consists of a value, not capable of being cast to an ArrayList.");
+            Main.getInstance().getLogger().warning("The chunks value in the database could not be cast to an ArrayList.");
             dbChunks = new ArrayList<>();
         }
 
@@ -58,8 +62,8 @@ public class MapSystem {
             }
         }
 
-        Document chunkDoc = new Document("_id", "mapChunks").append("chunks", chunks);
-        Main.getMongoDatabase().getCollection("map").replaceOne(eq("_id", "mapChunks"), chunkDoc);
+        Document chunkDoc = new Document("_id", id).append("chunks", chunks);
+        Main.getMongoDatabase().getCollection("map").replaceOne(eq("_id", id), chunkDoc);
     }
 
     public static ArrayList<ArrayList<Long>> getChunksInRange(World world /*temporary undefined parameter, to be modified in the future*/, long bx, long by, long ex, long ey){

@@ -32,6 +32,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import woolbattle.woolbattle.Main;
 import woolbattle.woolbattle.woolsystem.BlockBreakingSystem;
 
 import java.util.ArrayList;
@@ -53,7 +54,7 @@ public class MapCommand implements CommandExecutor {
                     try{
                         world = Bukkit.getWorld(UUID.fromString(args[5]));
                     }catch(NullPointerException e){
-                        System.out.println(world);
+                        Main.getInstance().getLogger().warning("Could not find world: " + args[5]);
                     }
 
                 }else if(args.length==5){
@@ -81,7 +82,7 @@ public class MapCommand implements CommandExecutor {
                     commandSender.sendMessage(Component.text("One of the latter 4 arguments does not seem to possess the right format (integer), to be parsed properly.", NamedTextColor.RED));
                     return false;
                 }
-                System.out.println("is called\n\n");
+                Main.getInstance().getLogger().info("Map chunks defined.");
                 MapSystem.defineMapChunks(chunks);
                 break;
             case "reset":

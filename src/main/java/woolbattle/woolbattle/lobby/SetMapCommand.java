@@ -78,8 +78,9 @@ public class SetMapCommand implements CommandExecutor {
             return true;
         }
 
-        // Clear in-memory map blocks (they are specific to the old map's world)
+        // Clear in-memory map blocks and load the new map's blocks from DB
         BlockBreakingSystem.setMapBlocks(new java.util.ArrayList<>());
+        BlockBreakingSystem.fetchMapBlocks();
 
         // Teleport all players to the new lobby spawn
         for (Player player : Bukkit.getOnlinePlayers()) {

@@ -141,7 +141,7 @@ public class AchievementSystem implements Listener {
          MongoDatabase db = Main.getMongoDatabase();
          MongoCollection<Document> collection = db.getCollection("playerAchievements");
          Bukkit.broadcast(Component.text(winner));
-         System.out.println(winner);
+         Main.getInstance().getLogger().info("Winner: " + winner);
          if (!winner.equals("Unknown")) {
              for (int i = 0; i <= Cache.getTeamMembers().get(winner).size(); i++) {
                  Document query = new Document().append("_id", Cache.getTeamMembers().get(winner).get(i).getUniqueId().toString());

@@ -32,6 +32,7 @@ import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
 import woolbattle.woolbattle.WoolHelper;
+import woolbattle.woolbattle.woolsystem.BlockBreakingSystem;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -42,6 +43,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 import woolbattle.woolbattle.Cache;
+import woolbattle.woolbattle.Main;
 import woolbattle.woolbattle.stats.StatsSystem;
 
 import java.util.ArrayList;
@@ -89,7 +91,11 @@ public class AllActivePerks implements Listener {
             int perkSlot = perk.getSlotCache(player);
 
             if(!(projectile.getType() == EntityType.ARROW)) {
-                player.getInventory().setItem(perkSlot, itemStack);
+                ItemStack restoreItem = itemStack.clone();
+                int restoreSlot = perkSlot;
+                Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                    player.getInventory().setItem(restoreSlot, restoreItem);
+                });
             }
 
             if(!subtractWool(player, woolCost)){
@@ -398,6 +404,7 @@ public class AllActivePerks implements Listener {
                         continue;
                     }
                     block.setType(WoolHelper.getWoolMaterial(teamColor));
+                    BlockBreakingSystem.trackPlacedBlock(location);
                 }
             }
         }.setItemName(Component.text("Rescue Platform", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
@@ -457,6 +464,7 @@ public class AllActivePerks implements Listener {
                     newPlayerBlocks.add(block);
 
                     block.setType(WoolHelper.getWoolMaterial(teamColor));
+                    BlockBreakingSystem.trackPlacedBlock(location);
                 }
 
                 playerBlocks.add(newPlayerBlocks);
@@ -520,6 +528,7 @@ public class AllActivePerks implements Listener {
                         continue;
                     }
                     block.setType(WoolHelper.getWoolMaterial(teamColor));
+                    BlockBreakingSystem.trackPlacedBlock(location);
                 }
             }
         }.setItemName(Component.text("Rescue Pod", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)

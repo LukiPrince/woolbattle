@@ -130,17 +130,19 @@ public final class Main extends JavaPlugin {
         getCommand("mapblocks").setExecutor(new MapBlocksCommand());
         getCommand("map").setExecutor(new MapCommand());
 
-        Document found = db.getCollection("map").find(eq("_id", "mapBlocks")).first();
+        String mapBlocksId = "mapBlocks_" + Config.defaultMap;
+        Document found = db.getCollection("map").find(eq("_id", mapBlocksId)).first();
         if (found == null) {
-            db.getCollection("map").insertOne(new Document("_id", "mapBlocks").append("mapBlocks", new ArrayList<ArrayList<Double>>()));//append("_id", "mapBlocks"));
+            db.getCollection("map").insertOne(new Document("_id", mapBlocksId).append("mapBlocks", new ArrayList<ArrayList<Double>>()));
         }
 
         BlockBreakingSystem.setCollectBrokenBlocks(false);
         BlockBreakingSystem.fetchMapBlocks();
 
-        // Always daytime in all worlds
+        // Always daytime, no advancements in all worlds
         for (org.bukkit.World world : Bukkit.getWorlds()) {
             world.setGameRule(org.bukkit.GameRules.ADVANCE_TIME, false);
+            world.setGameRule(org.bukkit.GameRule.ANNOUNCE_ADVANCEMENTS, false);
             world.setTime(6000);
         }
 

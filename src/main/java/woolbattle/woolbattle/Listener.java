@@ -30,9 +30,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerRecipeDiscoverEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -109,8 +111,6 @@ public class Listener implements org.bukkit.event.Listener {
                         itemAmount += WoolHelper.isWool(is.getType()) ? is.getAmount() : 0;
                     }
                 }
-
-                itemStack.setType(type);
 
                 boolean isPlayerPlaced = BlockBreakingSystem.isPlacedBlock(block.getLocation());
                 if (isPlayerPlaced) {
@@ -231,6 +231,21 @@ public class Listener implements org.bukkit.event.Listener {
      *              information, concerning these circumstances.
      * @author Servaturus
      */
+
+    @EventHandler
+    public void onPlayerAdvancementDone(PlayerAdvancementDoneEvent event) {
+        // Immediately revoke any advancement that gets completed
+        org.bukkit.advancement.AdvancementProgress progress = event.getPlayer().getAdvancementProgress(event.getAdvancement());
+        for (String criteria : progress.getAwardedCriteria()) {
+            progress.revokeCriteria(criteria);
+        }
+    }
+
+    @EventHandler
+    public void onRecipeDiscover(PlayerRecipeDiscoverEvent event) {
+        // Block all recipe discoveries
+        event.setCancelled(true);
+    }
 
     @EventHandler
     public void onPlayerGameModeChange(PlayerGameModeChangeEvent event) {
