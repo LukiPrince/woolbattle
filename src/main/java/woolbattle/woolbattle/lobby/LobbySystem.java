@@ -83,11 +83,127 @@ public class LobbySystem implements Listener {
     private static final String SCOREBOARD_TITLE_TEXT = "WOOLBATTLE";
     private static final String[] SCOREBOARD_TITLE_COLORS = new String[]{"§c", "§6", "§e", "§a", "§b", "§9", "§d"};
     private static int scoreboardTitleOffset = 0;
+    private static final int PERK_LORE_WRAP_LENGTH = 32;
+    private static final String PASSIVE_PERK_MENU_TITLE = "Passive Perk";
+    private static final String PASSIVE_CATEGORY_WIRTSCHAFT = "Wirtschaft";
+    private static final String PASSIVE_CATEGORY_DEFENSIV = "Defensiv";
+    private static final String PASSIVE_CATEGORY_UTILITY = "Utility";
 
     private static String plainName(ItemMeta meta) {
         Component display = meta.displayName();
         return display != null ? PlainTextComponentSerializer.plainText().serialize(display) : "";
     }
+
+    private static List<String> wrapLoreText(String text, int maxLineLength) {
+        ArrayList<String> lines = new ArrayList<>();
+        if(text == null || text.isBlank()) {
+            return lines;
+        }
+
+        String[] words = text.trim().split("\\s+");
+        StringBuilder currentLine = new StringBuilder();
+
+        for(String word : words) {
+            if(currentLine.length() == 0) {
+                currentLine.append(word);
+                continue;
+            }
+
+            if(currentLine.length() + 1 + word.length() <= maxLineLength) {
+                currentLine.append(" ").append(word);
+            }
+            else {
+                lines.add(currentLine.toString());
+                currentLine = new StringBuilder(word);
+            }
+        }
+
+        if(currentLine.length() > 0) {
+            lines.add(currentLine.toString());
+        }
+
+        return lines;
+    }
+
+    private static List<Component> buildPerkDescriptionLore(String description) {
+        ArrayList<Component> lore = new ArrayList<>();
+        for(String line : wrapLoreText(description, PERK_LORE_WRAP_LENGTH)) {
+            lore.add(Component.text(line, NamedTextColor.WHITE));
+        }
+        return lore;
+    }
+
+    private static LinkedHashMap<String, List<String>> getPassivePerkCategories() {
+        LinkedHashMap<String, List<String>> categories = new LinkedHashMap<>();
+        categories.put(PASSIVE_CATEGORY_WIRTSCHAFT, Arrays.asList("Wool Duplication", "Sparfuchs", "Nachschub", "Baumeister"));
+        categories.put(PASSIVE_CATEGORY_DEFENSIV, Arrays.asList("Ankerstiefel", "Standhaft", "Rueckprall", "Rettungsinstinkt"));
+        categories.put(PASSIVE_CATEGORY_UTILITY, Collections.singletonList("Heimvorteil"));
+        return categories;
+    }
+
+    private static String getPassiveCategoryInventoryTitle(String categoryName) {
+        return PASSIVE_PERK_MENU_TITLE + " - " + categoryName;
+    }
+
+    private static boolean isPerkSelectedInCategory(String selectedPerk, String categoryName) {
+        if(selectedPerk == null) {
+            return false;
+        }
+
+        List<String> perks = getPassivePerkCategories().get(categoryName);
+        return perks != null && perks.contains(selectedPerk);
+    }
+
+    private static String getSelectedPassivePerk(Player player) {
+        MongoDatabase db = Main.getMongoDatabase();
+        MongoCollection<Document> collection = db.getCollection("playerPerks");
+
+        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        if(foundDocument == null) {
+            return null;
+        }
+
+        Object passive = foundDocument.get("passive");
+        return passive instanceof String ? (String) passive : null;
+    }
+
+    private static ItemStack createGlassPane() {
+        ItemStack glassStack = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta glassMeta = glassStack.getItemMeta();
+        glassMeta.displayName(Component.text(" "));
+        glassStack.setItemMeta(glassMeta);
+        return glassStack;
+    }
+
+    private static void fillWithGlass(Inventory inventory) {
+        ItemStack glass = createGlassPane();
+        for(int i = 0; i < inventory.getSize(); i++) {
+            inventory.setItem(i, glass);
+        }
+    }
+
+    private static ItemStack createPassiveCategoryItem(Material material, String title, NamedTextColor color, String subtitle, boolean selected) {
+        ItemStack itemStack = new ItemStack(material);
+        ItemMeta itemMeta = itemStack.getItemMeta();
+
+        itemMeta.displayName(Component.text(title, color, TextDecoration.BOLD));
+        ArrayList<Component> lore = new ArrayList<>();
+        lore.add(Component.text(subtitle, NamedTextColor.GRAY));
+        lore.add(Component.text(" "));
+        lore.add(Component.text("Klicken zum Oeffnen", NamedTextColor.DARK_GRAY));
+        itemMeta.lore(lore);
+
+        if(selected) {
+            itemMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
+            itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
+
+        itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+
+        itemStack.setItemMeta(itemMeta);
+        return itemStack;
+    }
+
     private static int cooldown = Config.startCooldown;
     public static int teamLimit = Config.teamSize;
 
@@ -240,6 +356,25 @@ public class LobbySystem implements Listener {
         if(rawItemName == null){
             return;
         }
+
+        String passiveCategoryPrefix = PASSIVE_PERK_MENU_TITLE + " - ";
+        if(rawInventoryName.startsWith(passiveCategoryPrefix)) {
+            String categoryName = rawInventoryName.substring(passiveCategoryPrefix.length());
+
+            if(rawItemName.equals("Go Back")) {
+                showPassivePerkMenu(player);
+                return;
+            }
+
+            if(!Cache.getPassivePerks().containsKey(rawItemName)) {
+                return;
+            }
+
+            savePerkSelection(player, rawItemName, PerkType.PASSIVE);
+            showPassivePerkCategoryMenu(player, categoryName);
+            return;
+        }
+
         switch(rawInventoryName) {
             case "Amount of Lives Voting":
                 HashMap<Integer, ArrayList<Player>> votingData = Cache.getLifeVoting();
@@ -327,8 +462,9 @@ public class LobbySystem implements Listener {
                     showPerkMenu(player);
                 }
                 else {
-                    savePerkSelection(player, rawItemName, PerkType.PASSIVE);
-                    showPassivePerkMenu(player);
+                    if(getPassivePerkCategories().containsKey(rawItemName)) {
+                        showPassivePerkCategoryMenu(player, rawItemName);
+                    }
                 }
                 break;
         }
@@ -1029,14 +1165,13 @@ public class LobbySystem implements Listener {
             }
 
 
-            newLore = new ArrayList<>();
-
-            newLore.add(Component.text(perk.getDescription(), NamedTextColor.WHITE));
-            newLore.add(Component.text("\u1CBC"));
-            newLore.add(Component.text("WoolCost: ", NamedTextColor.GOLD).append(Component.text(perk.getWoolCost(), NamedTextColor.DARK_PURPLE)));
-            newLore.add(Component.text("Cooldown: ", NamedTextColor.GOLD).append(Component.text(perk.getCooldown(), NamedTextColor.DARK_PURPLE)));
+            newLore = buildPerkDescriptionLore(perk.getDescription());
+            newLore.add(Component.text(" "));
+            newLore.add(Component.text("Wool: ", NamedTextColor.GOLD).append(Component.text(perk.getWoolCost(), NamedTextColor.DARK_PURPLE)));
+            newLore.add(Component.text("Cooldown: ", NamedTextColor.GOLD).append(Component.text(perk.getCooldown() + "s", NamedTextColor.DARK_PURPLE)));
 
             itemMeta.lore(newLore);
+            itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
 
             itemStack.setItemMeta(itemMeta);
 
@@ -1054,23 +1189,103 @@ public class LobbySystem implements Listener {
     }
 
     private static void showPassivePerkMenu(Player player) {
+        String selectedPerk = getSelectedPassivePerk(player);
 
-        String selectedPerk = null;
+        Inventory inv = Bukkit.createInventory(null, 3*9, Component.text(PASSIVE_PERK_MENU_TITLE, NamedTextColor.LIGHT_PURPLE));
+        fillWithGlass(inv);
 
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerPerks");
+        ItemStack selectedPerkInfo = new ItemStack(Material.NETHER_STAR);
+        ItemMeta selectedPerkInfoMeta = selectedPerkInfo.getItemMeta();
+        selectedPerkInfoMeta.displayName(Component.text("Aktuelles Passiv", NamedTextColor.AQUA, TextDecoration.BOLD));
+        ArrayList<Component> selectedPerkLore = new ArrayList<>();
+        selectedPerkLore.add(Component.text(selectedPerk != null ? selectedPerk : "Kein Perk ausgewaehlt", NamedTextColor.WHITE));
+        selectedPerkLore.add(Component.text(" "));
+        selectedPerkLore.add(Component.text("Waehle unten eine Kategorie", NamedTextColor.DARK_GRAY));
+        selectedPerkInfoMeta.lore(selectedPerkLore);
+        selectedPerkInfoMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        selectedPerkInfo.setItemMeta(selectedPerkInfoMeta);
+        inv.setItem(4, selectedPerkInfo);
 
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
-        if(foundDocument != null){
-            selectedPerk = (String) foundDocument.get("passive");
+        inv.setItem(11, createPassiveCategoryItem(
+                Material.GOLD_INGOT,
+                PASSIVE_CATEGORY_WIRTSCHAFT,
+                NamedTextColor.GOLD,
+                "Wolle, Kosten, Build-Tempo",
+                isPerkSelectedInCategory(selectedPerk, PASSIVE_CATEGORY_WIRTSCHAFT)
+            ));
+        inv.setItem(13, createPassiveCategoryItem(
+                Material.SHIELD,
+                PASSIVE_CATEGORY_DEFENSIV,
+                NamedTextColor.RED,
+                "Knockback und Ueberleben",
+                isPerkSelectedInCategory(selectedPerk, PASSIVE_CATEGORY_DEFENSIV)
+            ));
+        inv.setItem(15, createPassiveCategoryItem(
+                Material.FEATHER,
+                PASSIVE_CATEGORY_UTILITY,
+                NamedTextColor.AQUA,
+                "Bewegung und Position",
+                isPerkSelectedInCategory(selectedPerk, PASSIVE_CATEGORY_UTILITY)
+            ));
+
+        ItemStack backStack = new ItemStack(Material.OAK_DOOR);
+        ItemMeta backMeta = backStack.getItemMeta();
+        backMeta.displayName(Component.text("Go Back", NamedTextColor.RED));
+        backStack.setItemMeta(backMeta);
+        inv.setItem(26, backStack);
+
+        player.openInventory(inv);
+    }
+
+    private static void showPassivePerkCategoryMenu(Player player, String categoryName) {
+        LinkedHashMap<String, List<String>> categories = getPassivePerkCategories();
+        List<String> categoryPerks = categories.get(categoryName);
+
+        if(categoryPerks == null) {
+            showPassivePerkMenu(player);
+            return;
         }
 
-        Inventory inv = Bukkit.createInventory(null, 3*9, Component.text("Passive Perk", NamedTextColor.LIGHT_PURPLE));
+        String selectedPerk = getSelectedPassivePerk(player);
 
-        List<Component> newLore;
+        Inventory inv = Bukkit.createInventory(null, 3*9, Component.text(getPassiveCategoryInventoryTitle(categoryName), NamedTextColor.LIGHT_PURPLE));
+        fillWithGlass(inv);
 
+        Material categoryMaterial;
+        NamedTextColor categoryColor;
+        String categorySubtitle;
+
+        switch(categoryName) {
+            case PASSIVE_CATEGORY_WIRTSCHAFT:
+                categoryMaterial = Material.GOLD_INGOT;
+                categoryColor = NamedTextColor.GOLD;
+                categorySubtitle = "Wolle, Kosten, Build-Tempo";
+                break;
+            case PASSIVE_CATEGORY_DEFENSIV:
+                categoryMaterial = Material.SHIELD;
+                categoryColor = NamedTextColor.RED;
+                categorySubtitle = "Knockback und Ueberleben";
+                break;
+            default:
+                categoryMaterial = Material.FEATHER;
+                categoryColor = NamedTextColor.AQUA;
+                categorySubtitle = "Bewegung und Position";
+                break;
+        }
+
+        ItemStack categoryInfo = createPassiveCategoryItem(categoryMaterial, categoryName, categoryColor, categorySubtitle, selectedPerk != null && categoryPerks.contains(selectedPerk));
+        inv.setItem(4, categoryInfo);
+
+        int[] perkSlots = {10, 11, 12, 13, 14, 15, 16};
         HashMap<String, PassivePerk<? extends Event, ?>> passivePerks = Cache.getPassivePerks();
-        for(PassivePerk<? extends Event, ?> perk : passivePerks.values()){
+
+        for(int i = 0; i < categoryPerks.size() && i < perkSlots.length; i++) {
+            String perkName = categoryPerks.get(i);
+            PassivePerk<? extends Event, ?> perk = passivePerks.get(perkName);
+
+            if(perk == null) {
+                continue;
+            }
 
             ItemStack itemStack = perk.getItem().clone();
             ItemMeta itemMeta = itemStack.getItemMeta();
@@ -1079,27 +1294,25 @@ public class LobbySystem implements Listener {
                 itemMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
                 itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
-            else{
-                if (itemMeta.hasEnchants()){
-                    for(Enchantment enchantment : itemMeta.getEnchants().keySet()){
+            else {
+                if(itemMeta.hasEnchants()) {
+                    for(Enchantment enchantment : itemMeta.getEnchants().keySet()) {
                         itemMeta.removeEnchant(enchantment);
                     }
                 }
             }
 
-
-            newLore = new ArrayList<>();
-
-            newLore.add(Component.text(perk.getDescription(), NamedTextColor.WHITE));
+            ArrayList<Component> newLore = new ArrayList<>(buildPerkDescriptionLore(perk.getDescription()));
+            newLore.add(Component.text(" "));
+            newLore.add(Component.text("Klicken zum Auswaehlen", NamedTextColor.GRAY));
 
             itemMeta.lore(newLore);
-
+            itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
             itemStack.setItemMeta(itemMeta);
 
-            inv.addItem(itemStack);
+            inv.setItem(perkSlots[i], itemStack);
         }
 
-        // Back Item
         ItemStack backStack = new ItemStack(Material.OAK_DOOR);
         ItemMeta backMeta = backStack.getItemMeta();
         backMeta.displayName(Component.text("Go Back", NamedTextColor.RED));

@@ -109,7 +109,15 @@ public class Config {
                             "    \"Rescue Pod\": 1010,\n" +
                             "    \"Duel\": 1011,\n" +
                             "    \"Egg\": 1012,\n" +
-                            "    \"Wool Duplication\": 2001\n" +
+                            "    \"Wool Duplication\": 2001,\n" +
+                            "    \"Sparfuchs\": 2002,\n" +
+                            "    \"Ankerstiefel\": 2003,\n" +
+                            "    \"Heimvorteil\": 2004,\n" +
+                            "    \"Nachschub\": 2005,\n" +
+                            "    \"Baumeister\": 2006,\n" +
+                            "    \"Rettungsinstinkt\": 2007,\n" +
+                            "    \"Standhaft\": 2008,\n" +
+                            "    \"Rueckprall\": 2009\n" +
                             "  }\n" +
                             "}"));
                 } catch (IOException e) {

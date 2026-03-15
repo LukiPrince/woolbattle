@@ -43,6 +43,7 @@ import woolbattle.woolbattle.MapConfig;
 import woolbattle.woolbattle.achievements.AchievementSystem;
 import woolbattle.woolbattle.team.TeamSystem;
 import woolbattle.woolbattle.lobby.LobbySystem;
+import woolbattle.woolbattle.perks.AllPassivePerks;
 
 import java.util.HashMap;
 
@@ -116,6 +117,7 @@ public class LivesSystem implements Listener {
 
         if (player.getLocation().getY() <= MapConfig.minHeight) {
             resetEnderPearls(player);
+            AllPassivePerks.resetPerLifeState(player);
             if (lastDamage.containsKey(player)) {
                 long realLastDamage = lastDamage.get(player);
                 if (unixTime - realLastDamage >= Config.deathCooldown) {

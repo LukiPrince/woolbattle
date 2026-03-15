@@ -30,6 +30,14 @@
     "Rescue Pod": 1010,
     "Duel": 1011,
     "Egg": 1012,
-    "Wool Duplication": 2001
+    "Wool Duplication": 2001,
+    "Sparfuchs": 2002,
+    "Ankerstiefel": 2003,
+    "Heimvorteil": 2004,
+    "Nachschub": 2005,
+    "Baumeister": 2006,
+    "Rettungsinstinkt": 2007,
+    "Standhaft": 2008,
+    "Rueckprall": 2009
   }
 }

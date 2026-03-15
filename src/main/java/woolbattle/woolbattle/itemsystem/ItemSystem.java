@@ -44,6 +44,7 @@ import woolbattle.woolbattle.Cache;
 import woolbattle.woolbattle.Main;
 import woolbattle.woolbattle.lobby.LobbySystem;
 import woolbattle.woolbattle.perks.ActivePerk;
+import woolbattle.woolbattle.perks.AllPassivePerks;
 import woolbattle.woolbattle.perks.PassivePerk;
 
 import java.util.ArrayList;
@@ -230,6 +231,10 @@ public class ItemSystem {
 
         if(existingWoolAmount - subtractWool < 0){
             return false;
+        }
+
+        if(subtractWool > 0 && AllPassivePerks.shouldSkipActivePerkWoolCost(player)) {
+            return true;
         }
 
         int woolAmount = 0;
