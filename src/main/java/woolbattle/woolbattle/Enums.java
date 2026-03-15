@@ -29,7 +29,8 @@ public class Enums {
     public enum PerkType {
         FIRST_ACTIVE(1),
         SECOND_ACTIVE(2),
-        PASSIVE(3);
+        PASSIVE(3),
+        ULTIMATE(4);
 
         public final Integer value;
 

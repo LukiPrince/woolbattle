@@ -1,0 +1,403 @@
+Compiled from "ClientboundPlayerInfoUpdatePacket.java"
+public class net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket implements net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener> {
+  public static final net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket> STREAM_CODEC;
+
+  private final java.util.EnumSet<net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Action> actions;
+
+  private final java.util.List<net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry> entries;
+
+  public net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(java.util.EnumSet<net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Action>, java.util.Collection<net.minecraft.server.level.ServerPlayer>);
+    Code:
+       0: aload_0
+       1: invokespecial #48                 // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: aload_1
+       6: putfield      #50                 // Field actions:Ljava/util/EnumSet;
+       9: aload_0
+      10: aload_2
+      11: invokeinterface #56,  1           // InterfaceMethod java/util/Collection.stream:()Ljava/util/stream/Stream;
+      16: invokedynamic #75,  0             // InvokeDynamic #0:apply:()Ljava/util/function/Function;
+      21: invokeinterface #81,  2           // InterfaceMethod java/util/stream/Stream.map:(Ljava/util/function/Function;)Ljava/util/stream/Stream;
+      26: invokeinterface #85,  1           // InterfaceMethod java/util/stream/Stream.toList:()Ljava/util/List;
+      31: putfield      #87                 // Field entries:Ljava/util/List;
+      34: return
+
+  public net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Action, net.minecraft.server.level.ServerPlayer);
+    Code:
+       0: aload_0
+       1: invokespecial #48                 // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: aload_1
+       6: invokestatic  #99                 // Method java/util/EnumSet.of:(Ljava/lang/Enum;)Ljava/util/EnumSet;
+       9: putfield      #50                 // Field actions:Ljava/util/EnumSet;
+      12: aload_0
+      13: new           #12                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry
+      16: dup
+      17: aload_2
+      18: invokespecial #61                 // Method net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry."<init>":(Lnet/minecraft/server/level/ServerPlayer;)V
+      21: invokestatic  #104                // InterfaceMethod java/util/List.of:(Ljava/lang/Object;)Ljava/util/List;
+      24: putfield      #87                 // Field entries:Ljava/util/List;
+      27: return
+
+  public net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(java.util.EnumSet<net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Action>, java.util.List<net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry>);
+    Code:
+       0: aload_0
+       1: invokespecial #48                 // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: aload_1
+       6: putfield      #50                 // Field actions:Ljava/util/EnumSet;
+       9: aload_0
+      10: aload_2
+      11: putfield      #87                 // Field entries:Ljava/util/List;
+      14: return
+
+  public net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(java.util.EnumSet<net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Action>, net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry);
+    Code:
+       0: aload_0
+       1: invokespecial #48                 // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: aload_1
+       6: putfield      #50                 // Field actions:Ljava/util/EnumSet;
+       9: aload_0
+      10: aload_2
+      11: invokestatic  #104                // InterfaceMethod java/util/List.of:(Ljava/lang/Object;)Ljava/util/List;
+      14: putfield      #87                 // Field entries:Ljava/util/List;
+      17: return
+
+  public static net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket createPlayerInitializing(java.util.Collection<net.minecraft.server.level.ServerPlayer>);
+    Code:
+       0: getstatic     #120                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.ADD_PLAYER:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+       3: bipush        7
+       5: anewarray     #14                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action
+       8: dup
+       9: iconst_0
+      10: getstatic     #123                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.INITIALIZE_CHAT:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      13: aastore
+      14: dup
+      15: iconst_1
+      16: getstatic     #126                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_GAME_MODE:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      19: aastore
+      20: dup
+      21: iconst_2
+      22: getstatic     #129                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_LISTED:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      25: aastore
+      26: dup
+      27: iconst_3
+      28: getstatic     #132                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_LATENCY:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      31: aastore
+      32: dup
+      33: iconst_4
+      34: getstatic     #135                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_DISPLAY_NAME:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      37: aastore
+      38: dup
+      39: iconst_5
+      40: getstatic     #138                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_HAT:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      43: aastore
+      44: dup
+      45: bipush        6
+      47: getstatic     #141                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_LIST_ORDER:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      50: aastore
+      51: invokestatic  #144                // Method java/util/EnumSet.of:(Ljava/lang/Enum;[Ljava/lang/Enum;)Ljava/util/EnumSet;
+      54: astore_1
+      55: new           #2                  // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket
+      58: dup
+      59: aload_1
+      60: aload_0
+      61: invokespecial #146                // Method "<init>":(Ljava/util/EnumSet;Ljava/util/Collection;)V
+      64: areturn
+
+  public static net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket createPlayerInitializing(java.util.Collection<net.minecraft.server.level.ServerPlayer>, net.minecraft.server.level.ServerPlayer);
+    Code:
+       0: getstatic     #120                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.ADD_PLAYER:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+       3: bipush        7
+       5: anewarray     #14                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action
+       8: dup
+       9: iconst_0
+      10: getstatic     #123                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.INITIALIZE_CHAT:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      13: aastore
+      14: dup
+      15: iconst_1
+      16: getstatic     #126                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_GAME_MODE:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      19: aastore
+      20: dup
+      21: iconst_2
+      22: getstatic     #129                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_LISTED:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      25: aastore
+      26: dup
+      27: iconst_3
+      28: getstatic     #132                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_LATENCY:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      31: aastore
+      32: dup
+      33: iconst_4
+      34: getstatic     #135                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_DISPLAY_NAME:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      37: aastore
+      38: dup
+      39: iconst_5
+      40: getstatic     #138                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_HAT:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      43: aastore
+      44: dup
+      45: bipush        6
+      47: getstatic     #141                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_LIST_ORDER:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      50: aastore
+      51: invokestatic  #144                // Method java/util/EnumSet.of:(Ljava/lang/Enum;[Ljava/lang/Enum;)Ljava/util/EnumSet;
+      54: astore_2
+      55: new           #151                // class java/util/ArrayList
+      58: dup
+      59: aload_0
+      60: invokeinterface #155,  1          // InterfaceMethod java/util/Collection.size:()I
+      65: invokespecial #158                // Method java/util/ArrayList."<init>":(I)V
+      68: astore_3
+      69: aload_1
+      70: invokevirtual #164                // Method net/minecraft/server/level/ServerPlayer.getBukkitEntity:()Lorg/bukkit/craftbukkit/entity/CraftPlayer;
+      73: astore        4
+      75: aload_0
+      76: invokeinterface #168,  1          // InterfaceMethod java/util/Collection.iterator:()Ljava/util/Iterator;
+      81: astore        5
+      83: aload         5
+      85: invokeinterface #176,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+      90: ifeq          134
+      93: aload         5
+      95: invokeinterface #180,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+     100: checkcast     #160                // class net/minecraft/server/level/ServerPlayer
+     103: astore        6
+     105: aload_3
+     106: new           #12                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry
+     109: dup
+     110: aload         6
+     112: aload         4
+     114: aload         6
+     116: invokevirtual #164                // Method net/minecraft/server/level/ServerPlayer.getBukkitEntity:()Lorg/bukkit/craftbukkit/entity/CraftPlayer;
+     119: invokevirtual #184                // Method org/bukkit/craftbukkit/entity/CraftPlayer.isListed:(Lorg/bukkit/entity/Player;)Z
+     122: invokespecial #187                // Method net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry."<init>":(Lnet/minecraft/server/level/ServerPlayer;Z)V
+     125: invokeinterface #191,  2          // InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+     130: pop
+     131: goto          83
+     134: new           #2                  // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket
+     137: dup
+     138: aload_2
+     139: aload_3
+     140: invokespecial #193                // Method "<init>":(Ljava/util/EnumSet;Ljava/util/List;)V
+     143: areturn
+
+  public static net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket createSinglePlayerInitializing(net.minecraft.server.level.ServerPlayer, boolean);
+    Code:
+       0: getstatic     #120                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.ADD_PLAYER:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+       3: bipush        7
+       5: anewarray     #14                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action
+       8: dup
+       9: iconst_0
+      10: getstatic     #123                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.INITIALIZE_CHAT:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      13: aastore
+      14: dup
+      15: iconst_1
+      16: getstatic     #126                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_GAME_MODE:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      19: aastore
+      20: dup
+      21: iconst_2
+      22: getstatic     #129                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_LISTED:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      25: aastore
+      26: dup
+      27: iconst_3
+      28: getstatic     #132                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_LATENCY:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      31: aastore
+      32: dup
+      33: iconst_4
+      34: getstatic     #135                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_DISPLAY_NAME:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      37: aastore
+      38: dup
+      39: iconst_5
+      40: getstatic     #138                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_HAT:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      43: aastore
+      44: dup
+      45: bipush        6
+      47: getstatic     #141                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_LIST_ORDER:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+      50: aastore
+      51: invokestatic  #144                // Method java/util/EnumSet.of:(Ljava/lang/Enum;[Ljava/lang/Enum;)Ljava/util/EnumSet;
+      54: astore_2
+      55: new           #12                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry
+      58: dup
+      59: aload_0
+      60: iload_1
+      61: invokespecial #187                // Method net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry."<init>":(Lnet/minecraft/server/level/ServerPlayer;Z)V
+      64: invokestatic  #104                // InterfaceMethod java/util/List.of:(Ljava/lang/Object;)Ljava/util/List;
+      67: astore_3
+      68: new           #2                  // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket
+      71: dup
+      72: aload_2
+      73: aload_3
+      74: invokespecial #193                // Method "<init>":(Ljava/util/EnumSet;Ljava/util/List;)V
+      77: areturn
+
+  public static net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket updateListed(java.util.UUID, boolean);
+    Code:
+       0: getstatic     #129                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.UPDATE_LISTED:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+       3: invokestatic  #99                 // Method java/util/EnumSet.of:(Ljava/lang/Enum;)Ljava/util/EnumSet;
+       6: astore_2
+       7: new           #2                  // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket
+      10: dup
+      11: aload_2
+      12: new           #12                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry
+      15: dup
+      16: aload_0
+      17: iload_1
+      18: invokespecial #206                // Method net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry."<init>":(Ljava/util/UUID;Z)V
+      21: invokespecial #208                // Method "<init>":(Ljava/util/EnumSet;Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry;)V
+      24: areturn
+
+  private net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(net.minecraft.network.RegistryFriendlyByteBuf);
+    Code:
+       0: aload_0
+       1: invokespecial #48                 // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: aload_1
+       6: ldc           #14                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action
+       8: invokevirtual #217                // Method net/minecraft/network/RegistryFriendlyByteBuf.readEnumSet:(Ljava/lang/Class;)Ljava/util/EnumSet;
+      11: putfield      #50                 // Field actions:Ljava/util/EnumSet;
+      14: aload_0
+      15: aload_1
+      16: aload_0
+      17: invokedynamic #227,  0            // InvokeDynamic #1:decode:(Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket;)Lnet/minecraft/network/codec/StreamDecoder;
+      22: invokevirtual #231                // Method net/minecraft/network/RegistryFriendlyByteBuf.readList:(Lnet/minecraft/network/codec/StreamDecoder;)Ljava/util/List;
+      25: putfield      #87                 // Field entries:Ljava/util/List;
+      28: return
+
+  private void write(net.minecraft.network.RegistryFriendlyByteBuf);
+    Code:
+       0: aload_1
+       1: aload_0
+       2: getfield      #50                 // Field actions:Ljava/util/EnumSet;
+       5: ldc           #14                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action
+       7: invokevirtual #238                // Method net/minecraft/network/RegistryFriendlyByteBuf.writeEnumSet:(Ljava/util/EnumSet;Ljava/lang/Class;)V
+      10: aload_1
+      11: aload_0
+      12: getfield      #87                 // Field entries:Ljava/util/List;
+      15: aload_0
+      16: invokedynamic #250,  0            // InvokeDynamic #2:encode:(Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket;)Lnet/minecraft/network/codec/StreamEncoder;
+      21: invokevirtual #254                // Method net/minecraft/network/RegistryFriendlyByteBuf.writeCollection:(Ljava/util/Collection;Lnet/minecraft/network/codec/StreamEncoder;)V
+      24: return
+
+  public net.minecraft.network.protocol.PacketType<net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket> type();
+    Code:
+       0: getstatic     #263                // Field net/minecraft/network/protocol/game/GamePacketTypes.CLIENTBOUND_PLAYER_INFO_UPDATE:Lnet/minecraft/network/protocol/PacketType;
+       3: areturn
+
+  public void handle(net.minecraft.network.protocol.game.ClientGamePacketListener);
+    Code:
+       0: aload_1
+       1: aload_0
+       2: invokeinterface #271,  2          // InterfaceMethod net/minecraft/network/protocol/game/ClientGamePacketListener.handlePlayerInfoUpdate:(Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket;)V
+       7: return
+
+  public java.util.EnumSet<net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Action> actions();
+    Code:
+       0: aload_0
+       1: getfield      #50                 // Field actions:Ljava/util/EnumSet;
+       4: areturn
+
+  public java.util.List<net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry> entries();
+    Code:
+       0: aload_0
+       1: getfield      #87                 // Field entries:Ljava/util/List;
+       4: areturn
+
+  public java.util.List<net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry> newEntries();
+    Code:
+       0: aload_0
+       1: getfield      #50                 // Field actions:Ljava/util/EnumSet;
+       4: getstatic     #120                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.ADD_PLAYER:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action;
+       7: invokevirtual #280                // Method java/util/EnumSet.contains:(Ljava/lang/Object;)Z
+      10: ifeq          20
+      13: aload_0
+      14: getfield      #87                 // Field entries:Ljava/util/List;
+      17: goto          23
+      20: invokestatic  #282                // InterfaceMethod java/util/List.of:()Ljava/util/List;
+      23: areturn
+
+  public java.lang.String toString();
+    Code:
+       0: aload_0
+       1: invokestatic  #288                // Method com/google/common/base/MoreObjects.toStringHelper:(Ljava/lang/Object;)Lcom/google/common/base/MoreObjects$ToStringHelper;
+       4: ldc_w         #289                // String actions
+       7: aload_0
+       8: getfield      #50                 // Field actions:Ljava/util/EnumSet;
+      11: invokevirtual #292                // Method com/google/common/base/MoreObjects$ToStringHelper.add:(Ljava/lang/String;Ljava/lang/Object;)Lcom/google/common/base/MoreObjects$ToStringHelper;
+      14: ldc_w         #293                // String entries
+      17: aload_0
+      18: getfield      #87                 // Field entries:Ljava/util/List;
+      21: invokevirtual #292                // Method com/google/common/base/MoreObjects$ToStringHelper.add:(Ljava/lang/String;Ljava/lang/Object;)Lcom/google/common/base/MoreObjects$ToStringHelper;
+      24: invokevirtual #295                // Method com/google/common/base/MoreObjects$ToStringHelper.toString:()Ljava/lang/String;
+      27: areturn
+
+  public void handle(net.minecraft.network.PacketListener);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: checkcast     #267                // class net/minecraft/network/protocol/game/ClientGamePacketListener
+       5: invokevirtual #298                // Method handle:(Lnet/minecraft/network/protocol/game/ClientGamePacketListener;)V
+       8: return
+
+  private void lambda$write$1(net.minecraft.network.FriendlyByteBuf, net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry);
+    Code:
+       0: aload_1
+       1: aload_2
+       2: invokevirtual #302                // Method net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry.profileId:()Ljava/util/UUID;
+       5: invokevirtual #308                // Method net/minecraft/network/FriendlyByteBuf.writeUUID:(Ljava/util/UUID;)Lnet/minecraft/network/FriendlyByteBuf;
+       8: pop
+       9: aload_0
+      10: getfield      #50                 // Field actions:Ljava/util/EnumSet;
+      13: invokevirtual #309                // Method java/util/EnumSet.iterator:()Ljava/util/Iterator;
+      16: astore_3
+      17: aload_3
+      18: invokeinterface #176,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+      23: ifeq          55
+      26: aload_3
+      27: invokeinterface #180,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+      32: checkcast     #14                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action
+      35: astore        4
+      37: aload         4
+      39: getfield      #313                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.writer:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action$Writer;
+      42: aload_1
+      43: checkcast     #213                // class net/minecraft/network/RegistryFriendlyByteBuf
+      46: aload_2
+      47: invokeinterface #316,  3          // InterfaceMethod net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action$Writer.write:(Lnet/minecraft/network/RegistryFriendlyByteBuf;Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry;)V
+      52: goto          17
+      55: return
+
+  private net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry lambda$new$0(net.minecraft.network.FriendlyByteBuf);
+    Code:
+       0: new           #10                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$EntryBuilder
+       3: dup
+       4: aload_1
+       5: invokevirtual #321                // Method net/minecraft/network/FriendlyByteBuf.readUUID:()Ljava/util/UUID;
+       8: invokespecial #324                // Method net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$EntryBuilder."<init>":(Ljava/util/UUID;)V
+      11: astore_2
+      12: aload_0
+      13: getfield      #50                 // Field actions:Ljava/util/EnumSet;
+      16: invokevirtual #309                // Method java/util/EnumSet.iterator:()Ljava/util/Iterator;
+      19: astore_3
+      20: aload_3
+      21: invokeinterface #176,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+      26: ifeq          58
+      29: aload_3
+      30: invokeinterface #180,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+      35: checkcast     #14                 // class net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action
+      38: astore        4
+      40: aload         4
+      42: getfield      #328                // Field net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action.reader:Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action$Reader;
+      45: aload_2
+      46: aload_1
+      47: checkcast     #213                // class net/minecraft/network/RegistryFriendlyByteBuf
+      50: invokeinterface #332,  3          // InterfaceMethod net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Action$Reader.read:(Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$EntryBuilder;Lnet/minecraft/network/RegistryFriendlyByteBuf;)V
+      55: goto          20
+      58: aload_2
+      59: invokevirtual #336                // Method net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$EntryBuilder.build:()Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry;
+      62: areturn
+
+  static {};
+    Code:
+       0: invokedynamic #347,  0            // InvokeDynamic #3:encode:()Lnet/minecraft/network/codec/StreamMemberEncoder;
+       5: invokedynamic #355,  0            // InvokeDynamic #4:decode:()Lnet/minecraft/network/codec/StreamDecoder;
+      10: invokestatic  #359                // InterfaceMethod net/minecraft/network/protocol/Packet.codec:(Lnet/minecraft/network/codec/StreamMemberEncoder;Lnet/minecraft/network/codec/StreamDecoder;)Lnet/minecraft/network/codec/StreamCodec;
+      13: putstatic     #361                // Field STREAM_CODEC:Lnet/minecraft/network/codec/StreamCodec;
+      16: return
+}

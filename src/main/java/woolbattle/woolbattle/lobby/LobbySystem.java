@@ -63,6 +63,7 @@ import woolbattle.woolbattle.Main;
 import woolbattle.woolbattle.achievements.AchievementUI;
 import woolbattle.woolbattle.itemsystem.ItemSystem;
 import woolbattle.woolbattle.perks.ActivePerk;
+import woolbattle.woolbattle.perks.AllActivePerks;
 import woolbattle.woolbattle.perks.AllPassivePerks;
 import woolbattle.woolbattle.perks.PassivePerk;
 import woolbattle.woolbattle.stats.StatsSystem;
@@ -85,6 +86,7 @@ public class LobbySystem implements Listener {
     private static int scoreboardTitleOffset = 0;
     private static final int PERK_LORE_WRAP_LENGTH = 32;
     private static final String PASSIVE_PERK_MENU_TITLE = "Passive Perk";
+    private static final String ULTIMATE_MENU_TITLE = "Ultimate";
     private static final String PASSIVE_CATEGORY_WIRTSCHAFT = "Wirtschaft";
     private static final String PASSIVE_CATEGORY_DEFENSIV = "Defensiv";
     private static final String PASSIVE_CATEGORY_UTILITY = "Utility";
@@ -165,6 +167,21 @@ public class LobbySystem implements Listener {
 
         Object passive = foundDocument.get("passive");
         return passive instanceof String ? (String) passive : null;
+    }
+
+    private static String getSelectedUltimate(Player player) {
+        MongoDatabase db = Main.getMongoDatabase();
+        MongoCollection<Document> collection = db.getCollection("playerPerks");
+
+        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        if (foundDocument != null && foundDocument.get("ultimate") instanceof String) {
+            String selected = (String) foundDocument.get("ultimate");
+            if (AllActivePerks.isUltimateName(selected)) {
+                return selected;
+            }
+        }
+
+        return AllActivePerks.getDefaultUltimateName();
     }
 
     private static ItemStack createGlassPane() {
@@ -436,6 +453,9 @@ public class LobbySystem implements Listener {
                     case "Passive Perk":
                         showPassivePerkMenu(player);
                         break;
+                    case ULTIMATE_MENU_TITLE:
+                        showUltimatePerkMenu(player);
+                        break;
                 }
 
                 break;
@@ -465,6 +485,15 @@ public class LobbySystem implements Listener {
                     if(getPassivePerkCategories().containsKey(rawItemName)) {
                         showPassivePerkCategoryMenu(player, rawItemName);
                     }
+                }
+                break;
+            case ULTIMATE_MENU_TITLE:
+                if(rawItemName.equals("Go Back")){
+                    showPerkMenu(player);
+                }
+                else if(AllActivePerks.isUltimateName(rawItemName)){
+                    savePerkSelection(player, rawItemName, PerkType.ULTIMATE);
+                    showUltimatePerkMenu(player);
                 }
                 break;
         }
@@ -836,6 +865,11 @@ public class LobbySystem implements Listener {
     public void savePerkSelection(Player player, String perkName, PerkType perkType){
         String perkTypeString = perkType.toString().toLowerCase();
 
+        if(perkType == PerkType.ULTIMATE && !AllActivePerks.isUltimateName(perkName)){
+            player.sendMessage(Component.text("Unknown ultimate selected.", NamedTextColor.RED));
+            return;
+        }
+
         MongoDatabase db = Main.getMongoDatabase();
         MongoCollection<Document> collection = db.getCollection("playerPerks");
 
@@ -847,12 +881,17 @@ public class LobbySystem implements Listener {
                 put("first_active", null);
                 put("second_active", null);
                 put("passive", null);
+                put("ultimate", AllActivePerks.getDefaultUltimateName());
             }};
 
             playerData.put(perkTypeString, perkName);
 
             Document document = new Document(playerData);
             collection.insertOne(document);
+
+            if(perkType == PerkType.ULTIMATE){
+                AllActivePerks.refreshUltimateSelection(player);
+            }
         }
         else{
             if(perkType == PerkType.FIRST_ACTIVE){
@@ -875,6 +914,10 @@ public class LobbySystem implements Listener {
             Bson updates = Updates.set(perkTypeString, perkName);
 
             collection.updateOne(query, updates);
+
+            if(perkType == PerkType.ULTIMATE){
+                AllActivePerks.refreshUltimateSelection(player);
+            }
         }
     }
 
@@ -1086,6 +1129,26 @@ public class LobbySystem implements Listener {
     private static void showPerkMenu(Player player) {
         Inventory inv = Bukkit.createInventory(null, 3*9, Component.text("Choose Perks", NamedTextColor.LIGHT_PURPLE));
 
+        String firstActiveSelection = null;
+        String secondActiveSelection = null;
+        String passiveSelection = getSelectedPassivePerk(player);
+        String ultimateSelection = getSelectedUltimate(player);
+
+        MongoDatabase db = Main.getMongoDatabase();
+        MongoCollection<Document> collection = db.getCollection("playerPerks");
+        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        if(foundDocument != null){
+            Object first = foundDocument.get("first_active");
+            if(first instanceof String && Cache.getActivePerks().containsKey(first)){
+                firstActiveSelection = (String) first;
+            }
+
+            Object second = foundDocument.get("second_active");
+            if(second instanceof String && Cache.getActivePerks().containsKey(second)){
+                secondActiveSelection = (String) second;
+            }
+        }
+
         // Glass Background
         ItemStack glassStack = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta glassMeta = glassStack.getItemMeta();
@@ -1100,22 +1163,53 @@ public class LobbySystem implements Listener {
         ItemStack activeOneStack = new ItemStack(Material.CHEST);
         ItemMeta activeOneMeta = activeOneStack.getItemMeta();
         activeOneMeta.displayName(Component.text("Active Perk #1", NamedTextColor.LIGHT_PURPLE));
+        activeOneMeta.lore(Arrays.asList(
+            Component.text("Aktuell: " + (firstActiveSelection != null ? firstActiveSelection : "Kein Perk"), NamedTextColor.GRAY),
+            Component.text(" "),
+            Component.text("Klicken zum Oeffnen", NamedTextColor.DARK_GRAY)
+        ));
+        activeOneMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         activeOneStack.setItemMeta(activeOneMeta);
-        inv.setItem(11, activeOneStack);
+        inv.setItem(10, activeOneStack);
 
         // Active Perk #2
         ItemStack activeTwoStack = new ItemStack(Material.CHEST);
         ItemMeta activeTwoMeta = activeTwoStack.getItemMeta();
         activeTwoMeta.displayName(Component.text("Active Perk #2", NamedTextColor.LIGHT_PURPLE));
+        activeTwoMeta.lore(Arrays.asList(
+            Component.text("Aktuell: " + (secondActiveSelection != null ? secondActiveSelection : "Kein Perk"), NamedTextColor.GRAY),
+            Component.text(" "),
+            Component.text("Klicken zum Oeffnen", NamedTextColor.DARK_GRAY)
+        ));
+        activeTwoMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         activeTwoStack.setItemMeta(activeTwoMeta);
-        inv.setItem(13, activeTwoStack);
+        inv.setItem(12, activeTwoStack);
 
         // Passive Perk
         ItemStack passiveStack = new ItemStack(Material.ENDER_CHEST);
         ItemMeta passiveMeta = passiveStack.getItemMeta();
         passiveMeta.displayName(Component.text("Passive Perk", NamedTextColor.LIGHT_PURPLE));
+        passiveMeta.lore(Arrays.asList(
+            Component.text("Aktuell: " + (passiveSelection != null ? passiveSelection : "Kein Perk"), NamedTextColor.GRAY),
+            Component.text(" "),
+            Component.text("Klicken zum Oeffnen", NamedTextColor.DARK_GRAY)
+        ));
+        passiveMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         passiveStack.setItemMeta(passiveMeta);
-        inv.setItem(15, passiveStack);
+        inv.setItem(14, passiveStack);
+
+        // Ultimate
+        ItemStack ultimateStack = new ItemStack(Material.NETHER_STAR);
+        ItemMeta ultimateMeta = ultimateStack.getItemMeta();
+        ultimateMeta.displayName(Component.text(ULTIMATE_MENU_TITLE, NamedTextColor.LIGHT_PURPLE));
+        ultimateMeta.lore(Arrays.asList(
+            Component.text("Aktuell: " + (ultimateSelection != null ? ultimateSelection : AllActivePerks.getDefaultUltimateName()), NamedTextColor.GRAY),
+            Component.text(" "),
+            Component.text("Klicken zum Oeffnen", NamedTextColor.DARK_GRAY)
+        ));
+        ultimateMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        ultimateStack.setItemMeta(ultimateMeta);
+        inv.setItem(16, ultimateStack);
 
         player.openInventory(inv);
     }
@@ -1179,6 +1273,49 @@ public class LobbySystem implements Listener {
         }
 
         // Back Item
+        ItemStack backStack = new ItemStack(Material.OAK_DOOR);
+        ItemMeta backMeta = backStack.getItemMeta();
+        backMeta.displayName(Component.text("Go Back", NamedTextColor.RED));
+        backStack.setItemMeta(backMeta);
+        inv.setItem(26, backStack);
+
+        player.openInventory(inv);
+    }
+
+    private static void showUltimatePerkMenu(Player player) {
+        String selectedUltimate = getSelectedUltimate(player);
+
+        Inventory inv = Bukkit.createInventory(null, 3*9, Component.text(ULTIMATE_MENU_TITLE, NamedTextColor.LIGHT_PURPLE));
+        fillWithGlass(inv);
+
+        int[] ultimateSlots = {10, 11, 12, 14, 15, 16};
+        int index = 0;
+
+        for(AllActivePerks.UltimateDefinition definition : AllActivePerks.getUltimateDefinitions().values()) {
+            if(index >= ultimateSlots.length) {
+                break;
+            }
+
+            ItemStack itemStack = new ItemStack(definition.getIconMaterial());
+            ItemMeta itemMeta = itemStack.getItemMeta();
+            itemMeta.displayName(Component.text(definition.getDisplayName(), NamedTextColor.LIGHT_PURPLE));
+
+            if(definition.getDisplayName().equals(selectedUltimate)) {
+                itemMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
+                itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            }
+
+            ArrayList<Component> lore = new ArrayList<>(buildPerkDescriptionLore(definition.getDescription()));
+            lore.add(Component.text(" "));
+            lore.add(Component.text("Klicken zum Auswaehlen", NamedTextColor.GRAY));
+            itemMeta.lore(lore);
+            itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+
+            itemStack.setItemMeta(itemMeta);
+            inv.setItem(ultimateSlots[index], itemStack);
+            index += 1;
+        }
+
         ItemStack backStack = new ItemStack(Material.OAK_DOOR);
         ItemMeta backMeta = backStack.getItemMeta();
         backMeta.displayName(Component.text("Go Back", NamedTextColor.RED));

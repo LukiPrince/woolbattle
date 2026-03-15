@@ -144,21 +144,33 @@ public class ActivePerk {
     }
 
     public void execute(PlayerInteractEvent event, Player player){
+        if(AllActivePerks.denyPerkUseIfSilenced(player)){
+            event.setCancelled(true);
+            return;
+        }
+
+        if(AllActivePerks.denyPerkUseByUltimateStates(player, this.itemName)){
+            event.setCancelled(true);
+            return;
+        }
+
         if(!useOnExecute){
             return;
         }
 
         int slot = getSlotCache(player);
 
-        if(!subtractWool(player, woolCost)){
+        int effectiveWoolCost = AllActivePerks.applyUltimateWoolCostModifier(player, woolCost);
+        if(!subtractWool(player, effectiveWoolCost)){
             event.setCancelled(true);
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.5f);
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.4f);
             return;
         }
 
-        if(cooldown != 0){
-            setItemCooldown(player, slot, itemStack, cooldown);
+        int effectiveCooldown = AllActivePerks.applyUltimateCooldownModifier(player, cooldown);
+        if(effectiveCooldown != 0){
+            setItemCooldown(player, slot, itemStack, effectiveCooldown);
         }
 
         onExecute(event, player);

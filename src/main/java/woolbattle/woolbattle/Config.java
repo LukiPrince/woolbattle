@@ -102,13 +102,18 @@ public class Config {
                             "    \"Ender Pearl\": 1003,\n" +
                             "    \"Rescue Platform\": 1004,\n" +
                             "    \"Exchanger\": 1005,\n" +
-                            "    \"Knockback Stick\": 1006,\n" +
                             "    \"Jump Platform\": 1007,\n" +
                             "    \"Grappling Hook\": 1008,\n" +
                             "    \"Home Teleport\": 1009,\n" +
                             "    \"Rescue Pod\": 1010,\n" +
                             "    \"Duel\": 1011,\n" +
                             "    \"Egg\": 1012,\n" +
+                            "    \"Impulswelle\": 1013,\n" +
+                            "    \"Stasisfalle\": 1014,\n" +
+                            "    \"Rettungsanker\": 1015,\n" +
+                            "    \"Nebelgranate\": 1016,\n" +
+                            "    \"Entwaffner-Puls\": 1017,\n" +
+                            "    \"Brueckenstoss\": 1018,\n" +
                             "    \"Wool Duplication\": 2001,\n" +
                             "    \"Sparfuchs\": 2002,\n" +
                             "    \"Ankerstiefel\": 2003,\n" +

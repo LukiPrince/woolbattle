@@ -1,0 +1,177 @@
+Compiled from "ClientboundPlayerInfoUpdatePacket.java"
+public final class net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry extends java.lang.Record {
+  private final java.util.UUID profileId;
+
+  private final com.mojang.authlib.GameProfile profile;
+
+  private final boolean listed;
+
+  private final int latency;
+
+  private final net.minecraft.world.level.GameType gameMode;
+
+  private final net.minecraft.network.chat.Component displayName;
+
+  private final boolean showHat;
+
+  private final int listOrder;
+
+  private final net.minecraft.network.chat.RemoteChatSession$Data chatSession;
+
+  net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry(net.minecraft.server.level.ServerPlayer);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: iconst_1
+       3: invokespecial #40                 // Method "<init>":(Lnet/minecraft/server/level/ServerPlayer;Z)V
+       6: return
+
+  net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry(net.minecraft.server.level.ServerPlayer, boolean);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: invokevirtual #50                 // Method net/minecraft/server/level/ServerPlayer.getUUID:()Ljava/util/UUID;
+       5: aload_1
+       6: invokevirtual #54                 // Method net/minecraft/server/level/ServerPlayer.getGameProfile:()Lcom/mojang/authlib/GameProfile;
+       9: iload_2
+      10: aload_1
+      11: getfield      #58                 // Field net/minecraft/server/level/ServerPlayer.connection:Lnet/minecraft/server/network/ServerGamePacketListenerImpl;
+      14: invokevirtual #63                 // Method net/minecraft/server/network/ServerGamePacketListenerImpl.latency:()I
+      17: aload_1
+      18: invokevirtual #66                 // Method net/minecraft/server/level/ServerPlayer.gameMode:()Lnet/minecraft/world/level/GameType;
+      21: aload_1
+      22: invokevirtual #70                 // Method net/minecraft/server/level/ServerPlayer.getTabListDisplayName:()Lnet/minecraft/network/chat/Component;
+      25: aload_1
+      26: getstatic     #76                 // Field net/minecraft/world/entity/player/PlayerModelPart.HAT:Lnet/minecraft/world/entity/player/PlayerModelPart;
+      29: invokevirtual #80                 // Method net/minecraft/server/level/ServerPlayer.isModelPartShown:(Lnet/minecraft/world/entity/player/PlayerModelPart;)Z
+      32: aload_1
+      33: invokevirtual #83                 // Method net/minecraft/server/level/ServerPlayer.getTabListOrder:()I
+      36: aload_1
+      37: invokevirtual #87                 // Method net/minecraft/server/level/ServerPlayer.getChatSession:()Lnet/minecraft/network/chat/RemoteChatSession;
+      40: invokedynamic #107,  0            // InvokeDynamic #0:apply:()Ljava/util/function/Function;
+      45: invokestatic  #113                // Method net/minecraft/Optionull.map:(Ljava/lang/Object;Ljava/util/function/Function;)Ljava/lang/Object;
+      48: checkcast     #10                 // class net/minecraft/network/chat/RemoteChatSession$Data
+      51: invokespecial #116                // Method "<init>":(Ljava/util/UUID;Lcom/mojang/authlib/GameProfile;ZILnet/minecraft/world/level/GameType;Lnet/minecraft/network/chat/Component;ZILnet/minecraft/network/chat/RemoteChatSession$Data;)V
+      54: return
+
+  net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry(java.util.UUID, boolean);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: aconst_null
+       3: iload_2
+       4: iconst_0
+       5: getstatic     #122                // Field net/minecraft/world/level/GameType.DEFAULT_MODE:Lnet/minecraft/world/level/GameType;
+       8: aconst_null
+       9: iconst_1
+      10: iconst_0
+      11: aconst_null
+      12: invokespecial #116                // Method "<init>":(Ljava/util/UUID;Lcom/mojang/authlib/GameProfile;ZILnet/minecraft/world/level/GameType;Lnet/minecraft/network/chat/Component;ZILnet/minecraft/network/chat/RemoteChatSession$Data;)V
+      15: return
+
+  public net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Entry(java.util.UUID, com.mojang.authlib.GameProfile, boolean, int, net.minecraft.world.level.GameType, net.minecraft.network.chat.Component, boolean, int, net.minecraft.network.chat.RemoteChatSession$Data);
+    Code:
+       0: aload_0
+       1: invokespecial #125                // Method java/lang/Record."<init>":()V
+       4: aload_0
+       5: aload_1
+       6: putfield      #127                // Field profileId:Ljava/util/UUID;
+       9: aload_0
+      10: aload_2
+      11: putfield      #129                // Field profile:Lcom/mojang/authlib/GameProfile;
+      14: aload_0
+      15: iload_3
+      16: putfield      #131                // Field listed:Z
+      19: aload_0
+      20: iload         4
+      22: putfield      #133                // Field latency:I
+      25: aload_0
+      26: aload         5
+      28: putfield      #135                // Field gameMode:Lnet/minecraft/world/level/GameType;
+      31: aload_0
+      32: aload         6
+      34: putfield      #137                // Field displayName:Lnet/minecraft/network/chat/Component;
+      37: aload_0
+      38: iload         7
+      40: putfield      #139                // Field showHat:Z
+      43: aload_0
+      44: iload         8
+      46: putfield      #141                // Field listOrder:I
+      49: aload_0
+      50: aload         9
+      52: putfield      #143                // Field chatSession:Lnet/minecraft/network/chat/RemoteChatSession$Data;
+      55: return
+
+  public final java.lang.String toString();
+    Code:
+       0: aload_0
+       1: invokedynamic #166,  0            // InvokeDynamic #1:toString:(Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry;)Ljava/lang/String;
+       6: areturn
+
+  public final int hashCode();
+    Code:
+       0: aload_0
+       1: invokedynamic #170,  0            // InvokeDynamic #1:hashCode:(Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry;)I
+       6: ireturn
+
+  public final boolean equals(java.lang.Object);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: invokedynamic #175,  0            // InvokeDynamic #1:equals:(Lnet/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket$Entry;Ljava/lang/Object;)Z
+       7: ireturn
+
+  public java.util.UUID profileId();
+    Code:
+       0: aload_0
+       1: getfield      #127                // Field profileId:Ljava/util/UUID;
+       4: areturn
+
+  public com.mojang.authlib.GameProfile profile();
+    Code:
+       0: aload_0
+       1: getfield      #129                // Field profile:Lcom/mojang/authlib/GameProfile;
+       4: areturn
+
+  public boolean listed();
+    Code:
+       0: aload_0
+       1: getfield      #131                // Field listed:Z
+       4: ireturn
+
+  public int latency();
+    Code:
+       0: aload_0
+       1: getfield      #133                // Field latency:I
+       4: ireturn
+
+  public net.minecraft.world.level.GameType gameMode();
+    Code:
+       0: aload_0
+       1: getfield      #135                // Field gameMode:Lnet/minecraft/world/level/GameType;
+       4: areturn
+
+  public net.minecraft.network.chat.Component displayName();
+    Code:
+       0: aload_0
+       1: getfield      #137                // Field displayName:Lnet/minecraft/network/chat/Component;
+       4: areturn
+
+  public boolean showHat();
+    Code:
+       0: aload_0
+       1: getfield      #139                // Field showHat:Z
+       4: ireturn
+
+  public int listOrder();
+    Code:
+       0: aload_0
+       1: getfield      #141                // Field listOrder:I
+       4: ireturn
+
+  public net.minecraft.network.chat.RemoteChatSession$Data chatSession();
+    Code:
+       0: aload_0
+       1: getfield      #143                // Field chatSession:Lnet/minecraft/network/chat/RemoteChatSession$Data;
+       4: areturn
+}
