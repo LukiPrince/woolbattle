@@ -2,95 +2,181 @@
   <br>
   <img src="images/sheep.png" alt="logo" width="160"/>
   <br>
-  Woolbattle Plugin
+  WoolBattle Plugin
   <br>
-</h1> 
+</h1>
 
-<h4 align="center">fast, customizable, unique perks & things you never saw before</h4>
+<h4 align="center">Fork of <a href="https://github.com/niklasmoell/woolbattle">niklasmoell/woolbattle</a> — extended with ultimates, passive perks, and more</h4>
 
 <p align="center">
-  <a href="https://java.com/">
-    <img src="https://img.shields.io/badge/made%20with-java-orange?style=for-the-badge" alt="language">
-  </a>
-  <a href="https://github.com/SimsumMC/woolbattle/releases">
-    <img src="https://img.shields.io/badge/Download-BETA-blue?style=for-the-badge" alt="download">
-  </a>
-  <a href="https://choosealicense.com/licenses/mit/">
-    <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="license">
-  </a>
+  <img src="https://img.shields.io/badge/minecraft-1.21.11-brightgreen?style=for-the-badge" alt="minecraft version">
+  <img src="https://img.shields.io/badge/made%20with-java-orange?style=for-the-badge" alt="language">
+  <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="license">
 </p>
 
 <p align="center">
-  <a href="#overview">Overview</a>
-  •
-  <a href="#overview">Features</a>
-  •
-  <a href="#license">License</a>
+  <a href="#overview">Overview</a> •
+  <a href="#features">Features</a> •
+  <a href="#perks">Perks</a> •
+  <a href="#ultimates">Ultimates</a> •
+  <a href="#maps">Maps</a> •
+  <a href="#setup">Setup</a> •
+  <a href="#commands">Commands</a>
 </p>
 
-# Overview
+---
 
-Woolbattle is a Minecraft Spigot/Paper Plugin written for the version 1.8. It is a minigame, where nearly everything
-costs wool - that's why it is named "Woolbattle". The maps are in the air, so the only way you can die is to fall
-under a specific height, which is surprisingly customizable 😉.You have 3 items at the start: 
-- a pair of shears, to farm wool and attack enemies
-- a bow, to kill enemies from distance
-- an ender pearl, to teleport yourself 
+## Overview
 
-Additionally, there are many active and passive perks. Let's start with the active ones:
+WoolBattle is a Minecraft minigame where everything revolves around wool. Break wool to gain resources, spend wool to use perks, and eliminate enemy teams by depleting their lives. Maps float in the air — fall off and you lose a life.
 
-_Active Perks are normal items, that often cost wool and have cooldowns. For Example, there is a "Rescue Pod", 
-which places blocks around you, to save you in the air. It costs 25 wool to use it and has a cooldown of 30 seconds, 
-where you cant use it._
+This is a fork of the original [niklasmoell/woolbattle](https://github.com/niklasmoell/woolbattle) with significant extensions:
 
-Passive Perks:
+- **Selectable Ultimates** — each player chooses one of 6 ultimate abilities
+- **Passive Perk System** — background effects that trigger automatically
+- **Configurable perk textures** via custom model data
+- **Per-map configuration**
+- **Improved lobby UX** for perk and ultimate selection
+- **Paper 1.21.11** support
 
-_The passive perks are very different, you can't actually use them, but they perform things in specific cases. For example,
-give you double the wool amount when breaking one or let you jump higher._
+A ready-to-use server setup is available at [LukiPrince/woolbattle-server](https://github.com/LukiPrince/woolbattle-server).
 
-Power-Ups:
+---
 
-_The Power-Ups in form of items spawn at random locations on the map - if you pick them up you will get random, good effects 
-for a limited period of time._
+## Features
 
+- Wool-based economy — everything costs wool, broken wool refills your supply
+- Team-based gameplay with 4 teams (Red, Blue, Green, Yellow)
+- Shared team lives — lose all lives and the team is eliminated
+- Spawn protection after death and at game start
+- Automatic block restoration when the map resets
+- Inventory sorting system
+- Achievement system (5 achievements)
+- MongoDB persistence for stats, perks, and achievements
+- Custom model data support for all perk items
 
-Just try it out with your friends, it's a hilarious game: _Join the Minecraft Server with the IP:_ **mc.almanbot.xyz**
+---
 
-**Features:**
+## Perks
 
-- many values are configurable by using the config.json
-- exciting active and passive perks
-- peerless so-called "Power-Ups", which give effects on pick-up
-- inventory-sort function
-- already 2 wonderful maps included - only 5 minutes to set up
+Each player selects **2 active perks** and **1 passive perk** before the game starts.
 
-# Setup
+### Active Perks
 
-1. Setup a MongoDB Cluster
+| Perk | Cost | Cooldown | Description |
+|------|------|----------|-------------|
+| Ender Pearl | 5 | 5s | Teleport to where it lands |
+| Rescue Platform | 15 | 25s | Place blocks below you in a cross pattern |
+| Exchanger | 15 | 10s | Swap locations with another player |
+| Jump Platform | 15 | 25s | Place a 3×3 bounce platform |
+| Grappling Hook | 5 | 5s | Fishing rod-based fast movement |
+| Home Teleport | 30 | 25s | Teleport back to your team spawn |
+| Rescue Pod | 15 | 30s | Surround yourself with blocks in an emergency |
+| Duel | 30 | 10s | Challenge another player to a 1v1 |
+| Impulse Wave | 26 | 10s | Push nearby enemies back |
+| Stasis Trap | 28 | 12s | Place an invisible proximity trap |
+| Rescue Anchor | 40 | 12s | Save a location and teleport back to it |
+| Smoke Grenade | 32 | 15s | Create fog and blind nearby enemies |
+| Disarm Pulse | 55 | 20s | Silence enemy active perks for 4 seconds |
+| Bridge Push | 35 | 10s | Build a short wool bridge forward |
+| Egg | 0 | 1s | Throwable egg projectile |
 
-The easiest way to host one for free is using [MongoDB Atlas](https://www.mongodb.com/atlas) or 
-host it local on your server.
+### Passive Perks
 
-2. Download the latest version
+| Perk | Effect |
+|------|--------|
+| Wool Duplication | Bonus wool when breaking wool blocks |
+| Savings Fox | 20% chance active perks cost no wool |
+| Anchor Boots | 12% knockback reduction |
+| Home Advantage | +10% walk speed on own team's wool |
+| Supply | +1 team wool every 5 seconds |
+| Builder | Every 6th placed wool block is refunded |
+| Rescue Instinct | Save from void fall once per life |
+| Steadfast | 5% chance to completely negate knockback |
+| Rebound | 5% chance to reflect knockback to attacker |
 
-Download the latest woolbattle.jar from [here](https://github.com/SimsumMC/woolbattle/releases) or if you're a 
-developer, download the source code and compile it yourself.
+---
 
-3. Get the [config.json](https://github.com/SimsumMC/woolbattle/blob/main/config.json) and fill in the values. Important:
-if you are going to use a map from this plugin, you can skip this step.
+## Ultimates
 
+Each player selects **1 ultimate** before the game. Ultimates charge at 2 per second during gameplay and can only be used at full charge (100).
 
-4. [Optional] Install a Map
+| Ultimate | Description |
+|----------|-------------|
+| Time Anchor | After a short delay, jump back and release an impulse wave |
+| Gravity Core | Pull enemies in, then launch them outward |
+| Perk Hijack | Block an enemy's active perk for 12 seconds |
+| Mirror Avatar | Spawn a movement clone that mimics your actions for 6 seconds |
+| Chain Mark | Mark that jumps between nearby enemies |
+| Overclock | Half perk costs and cooldowns for 8 seconds, then 3s overheat |
 
-Download one Map form [here](https://github.com/SimsumMC/woolbattle/tree/main/maps). In the specific folder, you have the 
-world folder, which you are going to use as a new world for your server. You also need the config.json provided with your map,
-and add the mongodb connection string in the field with the name "mongodb".
+---
 
-6. Drop the woolbattle.jar & config.json in the plugin folder 
+## Maps
 
+Two maps are included in [`plugins/WoolBattle/maps/`](plugins/WoolBattle/maps/).
 
-7. Start the server and have fun!
+| Map | Spawn | Height Range | Wool per Break |
+|-----|-------|--------------|----------------|
+| Splend | 0, 100, 0 | 0 – 120 | 2 |
+| Vimo | 0, 71, 28 | 0 – 100 | 2 |
 
-# License
+Both maps support 4 teams with individual spawn points.
 
-This project uses the MIT-License. For more information click [here](https://choosealicense.com/licenses/mit/)
+---
+
+## Setup
+
+### Requirements
+
+- Java 21+
+- [PaperMC](https://papermc.io/) 1.21.11
+- MongoDB (local or [MongoDB Atlas](https://www.mongodb.com/atlas))
+
+### Installation
+
+1. Build the plugin or download the latest JAR from [Releases](https://github.com/LukiPrince/woolbattle/releases)
+2. Drop the JAR into your server's `plugins/` folder
+3. Start the server once to generate `plugins/WoolBattle/config.json`
+4. Fill in your MongoDB connection string in `config.json`
+5. Set the map with `/setmap Splend` or `/setmap Vimo`
+6. Start the game with `/gstart`
+
+Alternatively, clone [LukiPrince/woolbattle-server](https://github.com/LukiPrince/woolbattle-server) for a ready-to-use server with worlds and configs included.
+
+### config.json
+
+| Key | Description | Default |
+|-----|-------------|---------|
+| `mongodb` | MongoDB connection string | — |
+| `mapName` | Map to load on startup | `"Splend"` |
+| `defaultLives` | Lives per team | `10` |
+| `teamSize` | Players per team | `2` |
+| `spawnProtectionAtGameStart` | Seconds of protection at start | `15` |
+| `spawnProtectionAfterDeath` | Seconds of protection after respawn | `5` |
+| `startCooldown` | Seconds before game starts | `60` |
+| `deathCooldown` | Seconds before respawn | `10` |
+| `woolReplaceDelay` | Seconds before broken wool regenerates | `10` |
+| `givenWoolAmount` | Wool given per block break | `1` |
+| `maxStacks` | Max wool stacks in inventory | `3` |
+| `perkCustomModelData` | Custom model data IDs for perk textures | `{}` |
+
+---
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/gstart` | Start the game immediately |
+| `/gstop` | Stop the game immediately |
+| `/setmap <name>` | Switch the active map |
+| `/stats [player]` | View stats for yourself or another player |
+| `/mapblocks` | Manage map blocks |
+| `/blockregistration` | Register wool blocks |
+| `/mapdefine` | Define map areas |
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
