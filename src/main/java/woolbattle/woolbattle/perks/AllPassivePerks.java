@@ -87,6 +87,11 @@ public class AllPassivePerks {
      */
 
     public static void load(){
+        Integer woolDuplicationModelData = Config.getPerkCustomModelData("Wool Duplication");
+        if (woolDuplicationModelData != null && woolDuplicationModelData > 0) {
+            woolMultiplication.setCustomModelData(woolDuplicationModelData);
+        }
+
         // woolMultiplication.register();
         // assignPlayersToPerks();
     }

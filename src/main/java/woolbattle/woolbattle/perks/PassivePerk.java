@@ -132,6 +132,13 @@ public abstract class PassivePerk<G extends Event, E extends G> implements Liste
         Cache.setPassivePerks(passivePerks);
     }
 
+    public PassivePerk<G, E> setCustomModelData(Integer customModelData) {
+        ItemMeta meta = item.getItemMeta();
+        meta.setCustomModelData(customModelData);
+        item.setItemMeta(meta);
+        return this;
+    }
+
 
     public Class<E> getType() {
         return type;

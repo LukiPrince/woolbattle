@@ -43,6 +43,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 import woolbattle.woolbattle.Cache;
+import woolbattle.woolbattle.Config;
 import woolbattle.woolbattle.Main;
 import woolbattle.woolbattle.stats.StatsSystem;
 
@@ -326,6 +327,13 @@ public class AllActivePerks implements Listener {
         }
     }
 
+    private static void applyConfiguredPerkTexture(String perkName, ActivePerk perk) {
+        Integer customModelData = Config.getPerkCustomModelData(perkName);
+        if (customModelData != null && customModelData > 0) {
+            perk.setCustomModelData(customModelData);
+        }
+    }
+
     public static void load(){
 
         ActivePerk shears = new ActivePerk(new ItemStack(Material.SHEARS), 0, 0, false, false)
@@ -339,6 +347,8 @@ public class AllActivePerks implements Listener {
         shearsItemMeta.setUnbreakable(true);
         shearsItemStack.setItemMeta(shearsItemMeta);
         shears.setItemStack(shearsItemStack);
+
+        applyConfiguredPerkTexture("Shears", shears);
 
         shears.register();
 
@@ -355,10 +365,14 @@ public class AllActivePerks implements Listener {
         bowItemStack.setItemMeta(bowItemMeta);
         bow.setItemStack(bowItemStack);
 
+        applyConfiguredPerkTexture("Bow", bow);
+
         bow.register();
 
         ActivePerk enderPearl = new ActivePerk(new ItemStack(Material.ENDER_PEARL), 5, 5, false, false)
                 .setItemName(Component.text("Ender Pearl", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true);
+
+        applyConfiguredPerkTexture("Ender Pearl", enderPearl);
 
         enderPearl.register();
 
@@ -410,6 +424,8 @@ public class AllActivePerks implements Listener {
         }.setItemName(Component.text("Rescue Platform", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
          .setDescription("Places blocks under you.");
 
+        applyConfiguredPerkTexture("Rescue Platform", rescuePlatform);
+
         rescuePlatform.register();
 
         ActivePerk exchanger = new ActivePerk(new ItemStack(Material.SNOWBALL), 15, 10, false)
@@ -417,12 +433,16 @@ public class AllActivePerks implements Listener {
                 .setDescription("Swap your Location with another player.");
         //no onExecute method here, see onProjectileLaunch event
 
+        applyConfiguredPerkTexture("Exchanger", exchanger);
+
         exchanger.register();
 
         ActivePerk knockbackStick = new ActivePerk(new ItemStack(Material.STICK), 0, 0, false)
                 .setItemName(Component.text("Knockback Stick", NamedTextColor.AQUA))
                 .addEnchantment(Enchantment.KNOCKBACK,100, false)
                 .setDescription("Best weapon in the game.");
+
+        applyConfiguredPerkTexture("Knockback Stick", knockbackStick);
 
         knockbackStick.register();
 
@@ -477,11 +497,15 @@ public class AllActivePerks implements Listener {
         }.setItemName(Component.text("Jump Platform", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
          .setDescription("Boosts yourself up.");
 
+        applyConfiguredPerkTexture("Jump Platform", jumpPlatform);
+
         jumpPlatform.register();
 
         ActivePerk grapplingHook = new ActivePerk(new ItemStack(Material.FISHING_ROD), 5, 5, false)
                 .setItemName(Component.text("Grappling Hook", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
                 .setDescription("Helps you go fast from one point to another.");
+
+        applyConfiguredPerkTexture("Grappling Hook", grapplingHook);
 
         grapplingHook.register();
 
@@ -492,6 +516,8 @@ public class AllActivePerks implements Listener {
             }
         }.setItemName(Component.text("Home Teleport", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
          .setDescription("Teleports you home.");
+
+        applyConfiguredPerkTexture("Home Teleport", homeTeleport);
 
         homeTeleport.register();
 
@@ -534,17 +560,23 @@ public class AllActivePerks implements Listener {
         }.setItemName(Component.text("Rescue Pod", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
          .setDescription("Places blocks around you.");
 
+        applyConfiguredPerkTexture("Rescue Pod", rescuePod);
+
         rescuePod.register();
 
         ActivePerk duel = new ActivePerk(new ItemStack(Material.WOODEN_SWORD), 30, 10, false)
                 .setItemName(Component.text("Duel", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
                 .setDescription("Puts you in a 1V1 with the hit player.");
 
+        applyConfiguredPerkTexture("Duel", duel);
+
         duel.register();
 
         ActivePerk Egg = new ActivePerk(new ItemStack(Material.EGG), 0, 1, false)
                 .setItemName(Component.text("Egg", NamedTextColor.AQUA)).addEnchantment(Enchantment.UNBREAKING, true)
                 .setDescription("Basically a Bow for Eggs.");
+
+        applyConfiguredPerkTexture("Egg", Egg);
 
         Egg.register();
 

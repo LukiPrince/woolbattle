@@ -113,6 +113,13 @@ public class ActivePerk {
         return this;
     }
 
+    public ActivePerk setCustomModelData(Integer customModelData){
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        itemMeta.setCustomModelData(customModelData);
+        itemStack.setItemMeta(itemMeta);
+        return this;
+    }
+
     public ActivePerk addEnchantment(Enchantment enchantment, int level, boolean invisible){
         ItemMeta itemMeta = itemStack.getItemMeta();
         itemMeta.addEnchant(enchantment, level, true);

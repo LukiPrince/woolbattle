@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:repo.papermc.io)",
+      "WebFetch(domain:docs.papermc.io)",
+      "Bash(mvn compile:*)",
+      "Bash(mvn clean:*)",
+      "WebFetch(domain:jd.papermc.io)",
+      "WebFetch(domain:api.papermc.io)",
+      "Bash(curl:*)",
+      "Bash(mvn dependency:resolve:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

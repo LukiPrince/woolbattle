@@ -16,5 +16,20 @@
   "givenWoolAmount": 1,
   "maxStacks": 4,
   "jumpCooldown": 60,
-  "woolReplaceDelay" : 10
+  "woolReplaceDelay" : 10,
+  "perkCustomModelData": {
+    "Shears": 1001,
+    "Bow": 1002,
+    "Ender Pearl": 1003,
+    "Rescue Platform": 1004,
+    "Exchanger": 1005,
+    "Knockback Stick": 1006,
+    "Jump Platform": 1007,
+    "Grappling Hook": 1008,
+    "Home Teleport": 1009,
+    "Rescue Pod": 1010,
+    "Duel": 1011,
+    "Egg": 1012,
+    "Wool Duplication": 2001
+  }
 }

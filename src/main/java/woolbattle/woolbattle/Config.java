@@ -95,7 +95,22 @@ public class Config {
                             "  \"givenWoolAmount\": 1,\n" +
                             "  \"maxStacks\": 3,\n" +
                             "  \"jumpCooldown\": 60,\n" +
-                            "  \"woolReplaceDelay\": 10\n" +
+                            "  \"woolReplaceDelay\": 10,\n" +
+                            "  \"perkCustomModelData\": {\n" +
+                            "    \"Shears\": 1001,\n" +
+                            "    \"Bow\": 1002,\n" +
+                            "    \"Ender Pearl\": 1003,\n" +
+                            "    \"Rescue Platform\": 1004,\n" +
+                            "    \"Exchanger\": 1005,\n" +
+                            "    \"Knockback Stick\": 1006,\n" +
+                            "    \"Jump Platform\": 1007,\n" +
+                            "    \"Grappling Hook\": 1008,\n" +
+                            "    \"Home Teleport\": 1009,\n" +
+                            "    \"Rescue Pod\": 1010,\n" +
+                            "    \"Duel\": 1011,\n" +
+                            "    \"Egg\": 1012,\n" +
+                            "    \"Wool Duplication\": 2001\n" +
+                            "  }\n" +
                             "}"));
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -131,5 +146,28 @@ public class Config {
     public static int getInt(String key) {
         JsonObject json = readConfig();
         return json.get(key).getAsInt();
+    }
+
+    /**
+     * Returns the configured custom model data for a perk name, or null if not configured.
+     * @param perkName the display name key of the perk in config
+     * @return custom model data integer or null
+     */
+    public static Integer getPerkCustomModelData(String perkName) {
+        JsonObject json = readConfig();
+        if (!json.has("perkCustomModelData") || !json.get("perkCustomModelData").isJsonObject()) {
+            return null;
+        }
+
+        JsonObject perkModelData = json.getAsJsonObject("perkCustomModelData");
+        if (!perkModelData.has(perkName)) {
+            return null;
+        }
+
+        try {
+            return perkModelData.get(perkName).getAsInt();
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 }

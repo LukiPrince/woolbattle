@@ -355,6 +355,21 @@ public class TeamSystem implements Listener {
     }
 
     /**
+     * Returns a legacy-colored team label for sidebar scoreboards.
+     * @param rawTeamName a raw team value like Red/Blue/Green/Yellow
+     * @return the team name including legacy color code, or gray None if no team is selected
+     */
+    public static String getScoreboardTeamName(String rawTeamName) {
+        return switch (rawTeamName) {
+            case "Red" -> "§cRed";
+            case "Blue" -> "§9Blue";
+            case "Green" -> "§aGreen";
+            case "Yellow" -> "§eYellow";
+            default -> "§8None";
+        };
+    }
+
+    /**
      * Method that returns the team-color of the specified player as a DyeColor.
      * @param p The player to get the team-color of
      * @author Servaturus

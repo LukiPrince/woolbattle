@@ -41,6 +41,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -79,6 +80,9 @@ public class LobbySystem implements Listener {
     public static boolean gameStarted = false;
     public static boolean runCooldownTask = false;
     public static boolean runScoreBoardTask = false;
+    private static final String SCOREBOARD_TITLE_TEXT = "WOOLBATTLE";
+    private static final String[] SCOREBOARD_TITLE_COLORS = new String[]{"§c", "§6", "§e", "§a", "§b", "§9", "§d"};
+    private static int scoreboardTitleOffset = 0;
 
     private static String plainName(ItemMeta meta) {
         Component display = meta.displayName();
@@ -338,6 +342,12 @@ public class LobbySystem implements Listener {
      */
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK
+                && event.getClickedBlock() != null
+                && event.getClickedBlock().getState() instanceof org.bukkit.block.Sign) {
+            event.setUseInteractedBlock(Event.Result.DENY);
+        }
+
         if (event.getItem() == null || event.getItem().getItemMeta() == null || event.getItem().getItemMeta().displayName() == null) return;
 
         Player player = event.getPlayer();
@@ -892,23 +902,24 @@ public class LobbySystem implements Listener {
         }
 
         // shears
-        ItemStack shearsStack = new ItemStack(Material.SHEARS);
+        ActivePerk shearsPerk = Cache.getActivePerks().get("Shears");
+        ItemStack shearsStack = shearsPerk != null ? shearsPerk.getItemStack().clone() : new ItemStack(Material.SHEARS);
         ItemMeta shearsMeta = shearsStack.getItemMeta();
-        shearsMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
         shearsMeta.displayName(Component.text("Shears", NamedTextColor.AQUA));
         shearsStack.setItemMeta(shearsMeta);
         inv.setItem(shearsSlot, shearsStack);
 
         // bow
-        ItemStack bowStack = new ItemStack(Material.BOW);
+        ActivePerk bowPerk = Cache.getActivePerks().get("Bow");
+        ItemStack bowStack = bowPerk != null ? bowPerk.getItemStack().clone() : new ItemStack(Material.BOW);
         ItemMeta bowMeta = bowStack.getItemMeta();
-        bowMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
         bowMeta.displayName(Component.text("Bow", NamedTextColor.AQUA));
         bowStack.setItemMeta(bowMeta);
         inv.setItem(bowSlot, bowStack);
 
         // ender pearl
-        ItemStack enderPearlStack = new ItemStack(Material.ENDER_PEARL);
+        ActivePerk enderPearlPerk = Cache.getActivePerks().get("Ender Pearl");
+        ItemStack enderPearlStack = enderPearlPerk != null ? enderPearlPerk.getItemStack().clone() : new ItemStack(Material.ENDER_PEARL);
         ItemMeta enderPearlMeta = enderPearlStack.getItemMeta();
         enderPearlMeta.displayName(Component.text("Ender Pearl", NamedTextColor.AQUA));
         enderPearlStack.setItemMeta(enderPearlMeta);
@@ -1134,7 +1145,7 @@ public class LobbySystem implements Listener {
                     }
                 }
             }
-        }.runTaskTimer(Main.getInstance(), 0, 20);
+        }.runTaskTimer(Main.getInstance(), 0, 5);
 
     }
 
@@ -1197,9 +1208,21 @@ public class LobbySystem implements Listener {
                     } else {
                         updateGameScoreBoard(player);
                     }
-                }            }
+                }
+
+                scoreboardTitleOffset = (scoreboardTitleOffset + 1) % SCOREBOARD_TITLE_COLORS.length;
+            }
         }.runTaskTimer(Main.getInstance(), 0, 20);
 
+    }
+
+    private static String getAnimatedScoreboardTitle() {
+        StringBuilder titleBuilder = new StringBuilder();
+        for (int i = 0; i < SCOREBOARD_TITLE_TEXT.length(); i++) {
+            String color = SCOREBOARD_TITLE_COLORS[(i + scoreboardTitleOffset) % SCOREBOARD_TITLE_COLORS.length];
+            titleBuilder.append(color).append(SCOREBOARD_TITLE_TEXT.charAt(i));
+        }
+        return titleBuilder.toString();
     }
 
     /**
@@ -1215,7 +1238,7 @@ public class LobbySystem implements Listener {
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         Scoreboard board = manager.getNewScoreboard();
 
-        Objective obj = board.registerNewObjective("Lobby", "dummy", "§e§lWOOL§6§lBATTLE");
+        Objective obj = board.registerNewObjective("Lobby", "dummy", getAnimatedScoreboardTitle());
         obj.numberFormat(io.papermc.paper.scoreboard.numbers.NumberFormat.blank());
 
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
@@ -1244,9 +1267,9 @@ public class LobbySystem implements Listener {
 
         obj.getScore("§7§m                         ").setScore(0);
 
-        String teamName = TeamSystem.getPlayerTeam(player, false);
+        String teamName = TeamSystem.getPlayerTeam(player, true);
         team.addEntry("§c");
-        team.setPrefix("§7 Team §8» " + (teamName.isEmpty() ? "§8None" : teamName));
+        team.setPrefix("§7 Team §8» " + TeamSystem.getScoreboardTeamName(teamName));
 
         map.addEntry("§d");
         map.setPrefix("§7 Map §8» §e" + MapConfig.mapName);
@@ -1274,13 +1297,18 @@ public class LobbySystem implements Listener {
 
         Scoreboard board = player.getScoreboard();
 
+        Objective objective = board.getObjective("Lobby");
+        if (objective != null) {
+            objective.setDisplayName(getAnimatedScoreboardTitle());
+        }
+
         Team team = board.getTeam("team");
         Team map = board.getTeam("map");
         Team lives = board.getTeam("lives");
         Team players = board.getTeam("players");
 
-        String teamName = TeamSystem.getPlayerTeam(player, false);
-        team.setPrefix("§7 Team §8» " + (teamName.isEmpty() ? "§8None" : teamName));
+        String teamName = TeamSystem.getPlayerTeam(player, true);
+        team.setPrefix("§7 Team §8» " + TeamSystem.getScoreboardTeamName(teamName));
         map.setPrefix("§7 Map §8» §e" + MapConfig.mapName);
         lives.setPrefix("§7 Lives §8» §a" + getTopVotedLifeAmount());
         players.setPrefix("§7 Players §8» §b" + actualPlayers + "§8/§b" + maxPlayers);
@@ -1297,7 +1325,7 @@ public class LobbySystem implements Listener {
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         Scoreboard board = manager.getNewScoreboard();
 
-        Objective obj = board.registerNewObjective("Game", "dummy", "§e§lWOOL§6§lBATTLE");
+        Objective obj = board.registerNewObjective("Game", "dummy", getAnimatedScoreboardTitle());
         obj.numberFormat(io.papermc.paper.scoreboard.numbers.NumberFormat.blank());
 
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
@@ -1329,9 +1357,9 @@ public class LobbySystem implements Listener {
         obj.getScore("§5").setScore(1);
         obj.getScore("§7§m                         ").setScore(0);
 
-        String teamName = TeamSystem.getPlayerTeam(player, false);
+        String teamName = TeamSystem.getPlayerTeam(player, true);
         team.addEntry("§c");
-        team.setPrefix("§7 Team §8» " + (teamName.isEmpty() ? "§8None" : teamName));
+        team.setPrefix("§7 Team §8» " + TeamSystem.getScoreboardTeamName(teamName));
 
         map.addEntry("§d");
         map.setPrefix("§7 Map §8» §e" + MapConfig.mapName);
@@ -1368,6 +1396,11 @@ public class LobbySystem implements Listener {
 
         Scoreboard board = player.getScoreboard();
 
+        Objective objective = board.getObjective("Game");
+        if (objective != null) {
+            objective.setDisplayName(getAnimatedScoreboardTitle());
+        }
+
         Team team = board.getTeam("team");
         Team map = board.getTeam("map");
 
@@ -1376,8 +1409,8 @@ public class LobbySystem implements Listener {
         Team greenTeam = board.getTeam("greenTeam");
         Team yellowTeam = board.getTeam("yellowTeam");
 
-        String teamName = TeamSystem.getPlayerTeam(player, false);
-        team.setPrefix("§7 Team §8» " + (teamName.isEmpty() ? "§8None" : teamName));
+        String teamName = TeamSystem.getPlayerTeam(player, true);
+        team.setPrefix("§7 Team §8» " + TeamSystem.getScoreboardTeamName(teamName));
         map.setPrefix("§7 Map §8» §e" + MapConfig.mapName);
 
         HashMap<String, Integer> teamLives = Cache.getTeamLives();
