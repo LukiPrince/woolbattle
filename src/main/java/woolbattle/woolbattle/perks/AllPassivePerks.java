@@ -40,6 +40,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -77,6 +78,7 @@ public class AllPassivePerks {
     private static final String RETTUNGSINSTINKT = "Rettungsinstinkt";
     private static final String STANDHAFT = "Standhaft";
     private static final String RUECKPRALL = "Rueckprall";
+    private static final String WOOL_ARCHER = "Wool Archer";
 
     private static final float DEFAULT_WALK_SPEED = 0.2f;
     private static final float HEIMVORTEIL_WALK_SPEED = 0.22f;
@@ -307,6 +309,36 @@ public class AllPassivePerks {
             "5% Chance, Knockback abzuwehren und auf den Angreifer zurueckzugeben"
     ){};
 
+    private static final PassivePerk<Event, Event> woolArcher = new PassivePerk<Event, Event>(
+            new ItemStack(Material.BOW),
+            Component.text(WOOL_ARCHER, NamedTextColor.AQUA),
+            true,
+            "No shears needed. You can mine wool with your bow."
+    ){
+        @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+        public void onBlockDamage(BlockDamageEvent event) {
+            if(!LobbySystem.gameStarted) {
+                return;
+            }
+
+            Player player = event.getPlayer();
+            if(!hasPassivePerk(player, WOOL_ARCHER)) {
+                return;
+            }
+
+            ItemStack inMainHand = player.getInventory().getItemInMainHand();
+            if(inMainHand == null || inMainHand.getType() != Material.BOW) {
+                return;
+            }
+
+            if(!WoolHelper.isWool(event.getBlock().getType())) {
+                return;
+            }
+
+            event.setInstaBreak(true);
+        }
+    };
+
     /**Method setting up the system of passive perks. Over the course of the method, instances of the passive perk are added to the HashMap of
      * passive perks in Cache.java and assigned to potential owners through a query
      * toward the db respectively
@@ -323,11 +355,13 @@ public class AllPassivePerks {
         registerPerk(rettungsinstinkt);
         registerPerk(standhaft);
         registerPerk(rueckprall);
+        registerPerk(woolArcher);
 
         registerPerkListener(ankerstiefel);
         registerPerkListener(heimvorteil);
         registerPerkListener(baumeister);
         registerPerkListener(rettungsinstinkt);
+        registerPerkListener(woolArcher);
 
         if(!passiveTasksStarted) {
             passiveTasksStarted = true;

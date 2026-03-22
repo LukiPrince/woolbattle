@@ -46,6 +46,8 @@ import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -89,7 +91,10 @@ public class AllActivePerks implements Listener {
     private static final long RESCUE_ANCHOR_WINDOW_MS = 6000L;
     private static final long DISARM_PULSE_DURATION_MS = 4000L;
     private static final int ULTIMATE_MAX_CHARGE = 100;
-    private static final int ULTIMATE_CHARGE_PER_SECOND = 2;
+    private static final int ULTIMATE_PASSIVE_CHARGE_AMOUNT = 1;
+    private static final int ULTIMATE_PASSIVE_CHARGE_INTERVAL_SECONDS = 6;
+    private static final int ULTIMATE_CHARGE_ON_ARROW_HIT = 6;
+    private static final int ULTIMATE_CHARGE_ON_MELEE_BOW_OR_SHEARS_HIT = 4;
     private static final int ULTIMATE_HUD_FULL_LEVEL = 1;
     private static final long TIME_ANCHOR_DELAY_TICKS = 80L;
     private static final long HIJACK_DURATION_MS = 12000L;
@@ -105,6 +110,10 @@ public class AllActivePerks implements Listener {
     private static final int MIRROR_DURATION_TICKS = 120;
     private static final byte FULL_SKIN_LAYER_MASK = 0x7F;
     private static final String DEFAULT_ULTIMATE_NAME = "Zeitanker";
+    private static final String MINIGUN_ARROW_METADATA = "wb_minigun_arrow";
+    private static final int MINIGUN_BURSTS = 24;
+    private static final int MINIGUN_BURST_INTERVAL_TICKS = 2;
+    private static final int MINIGUN_ARROWS_PER_BURST = 3;
 
     public static final class UltimateDefinition {
         private final String displayName;
@@ -137,6 +146,7 @@ public class AllActivePerks implements Listener {
         put("Spiegelavatar", new UltimateDefinition("Spiegelavatar", Material.ARMOR_STAND, "Erzeugt einen tauschend echten Bewegungs-Clone."));
         put("Kettenmarkierung", new UltimateDefinition("Kettenmarkierung", Material.IRON_BARS, "Markierung springt auf weitere Gegner in der Naehe ueber."));
         put("Overclock", new UltimateDefinition("Overclock", Material.REDSTONE, "Kurzzeitig halbierte Kosten/Cooldowns, danach Ueberhitzung."));
+        put("Minigun", new UltimateDefinition("Minigun", Material.CROSSBOW, "Feuert kurzzeitig eine Salve aus vielen Pfeilen."));
     }};
 
     private static final HashMap<UUID, Long> lastGrapplingUse = new HashMap<>();
@@ -156,8 +166,11 @@ public class AllActivePerks implements Listener {
     private static final HashMap<UUID, Long> overclockActiveUntil = new HashMap<>();
     private static final HashMap<UUID, Long> overclockOverheatUntil = new HashMap<>();
     private static final HashMap<UUID, HashMap<String, Long>> blockedPerksByPlayer = new HashMap<>();
+    private static final HashMap<UUID, Integer> syntheticArrowSlots = new HashMap<>();
+    private static final HashMap<UUID, BukkitTask> minigunTasks = new HashMap<>();
     private static boolean ultimateHudTaskRunning = false;
     private static boolean ultimateSessionInitialized = false;
+    private static int passiveChargeSecondCounter = 0;
 
     private static class StasisTrap {
         private final UUID trapId;
@@ -193,12 +206,154 @@ public class AllActivePerks implements Listener {
         startUltimateChargeTask();
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if(!LobbySystem.gameStarted) {
+            return;
+        }
+
+        if(event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+
+        Action action = event.getAction();
+        if(action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+        ItemStack item = event.getItem();
+        if(!isBowPerkItem(item)) {
+            return;
+        }
+
+        if(hasAnyArrow(player)) {
+            // Let vanilla shooting handle it when the player already has real arrows.
+            return;
+        }
+
+        if (denyPerkUseIfSilenced(player) || denyPerkUseByUltimateStates(player, "Bow")) {
+            event.setCancelled(true);
+            return;
+        }
+
+        UUID playerId = player.getUniqueId();
+        if (syntheticArrowSlots.containsKey(playerId)) {
+            return;
+        }
+
+        int slot = findSyntheticArrowSlot(player);
+        if (slot < 0) {
+            event.setCancelled(true);
+            player.sendActionBar(Component.text("No free inventory slot for bow ammo.", NamedTextColor.RED));
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.5f);
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 0.4f);
+            return;
+        }
+
+        injectSyntheticArrow(player, slot);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> maintainSyntheticArrowForBow(player));
+    }
+
+    private void maintainSyntheticArrowForBow(Player player) {
+        if (!player.isOnline() || !LobbySystem.gameStarted) {
+            removeSyntheticArrow(player);
+            return;
+        }
+
+        ItemStack mainHandItem = player.getInventory().getItemInMainHand();
+        if (!isBowPerkItem(mainHandItem) || hasAnyArrow(player)) {
+            removeSyntheticArrow(player);
+            return;
+        }
+
+        if (syntheticArrowSlots.containsKey(player.getUniqueId())) {
+            return;
+        }
+
+        int slot = findSyntheticArrowSlot(player);
+        if (slot < 0) {
+            return;
+        }
+
+        injectSyntheticArrow(player, slot);
+    }
+
+    private boolean isBowPerkItem(ItemStack item) {
+        if (item == null || item.getType() != Material.BOW || !item.hasItemMeta()) {
+            return false;
+        }
+
+        Component displayName = item.getItemMeta().displayName();
+        if (displayName == null) {
+            return false;
+        }
+
+        String itemName = PlainTextComponentSerializer.plainText().serialize(displayName);
+        return "Bow".equals(itemName);
+    }
+
     public static LinkedHashMap<String, UltimateDefinition> getUltimateDefinitions() {
         return new LinkedHashMap<>(ULTIMATE_DEFINITIONS);
     }
 
     public static boolean isUltimateName(String ultimateName) {
         return ultimateName != null && ULTIMATE_DEFINITIONS.containsKey(ultimateName);
+    }
+
+    private boolean hasAnyArrow(Player player) {
+        PlayerInventory inventory = player.getInventory();
+        for(ItemStack stack : inventory.getContents()) {
+            if(stack == null) {
+                continue;
+            }
+
+            Material material = stack.getType();
+            if(material == Material.ARROW || material == Material.SPECTRAL_ARROW || material == Material.TIPPED_ARROW) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int findSyntheticArrowSlot(Player player) {
+        PlayerInventory inventory = player.getInventory();
+
+        for (int slot = 35; slot >= 9; slot--) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack == null || stack.getType() == Material.AIR) {
+                return slot;
+            }
+        }
+
+        return -1;
+    }
+
+    private void injectSyntheticArrow(Player player, int slot) {
+        player.getInventory().setItem(slot, new ItemStack(Material.ARROW, 1));
+        syntheticArrowSlots.put(player.getUniqueId(), slot);
+    }
+
+    private void removeSyntheticArrow(Player player) {
+        Integer slot = syntheticArrowSlots.remove(player.getUniqueId());
+        if (slot == null) {
+            return;
+        }
+
+        ItemStack stack = player.getInventory().getItem(slot);
+        if (stack == null) {
+            return;
+        }
+
+        if (stack.getType() == Material.ARROW && stack.getAmount() == 1) {
+            player.getInventory().setItem(slot, null);
+        }
     }
 
     public static String getDefaultUltimateName() {
@@ -213,6 +368,15 @@ public class AllActivePerks implements Listener {
         }
 
         Player player = (Player) projectile.getShooter();
+
+        if (projectile instanceof Arrow arrow && arrow.hasMetadata(MINIGUN_ARROW_METADATA)) {
+            return;
+        }
+
+        if (projectile.getType() == EntityType.ARROW) {
+            removeSyntheticArrow(player);
+            Bukkit.getScheduler().runTask(Main.getInstance(), () -> maintainSyntheticArrowForBow(player));
+        }
 
         if(projectile instanceof FishHook hook && isHoldingGrapplingHook(player)) {
             if (denyPerkUseIfSilenced(player) || denyPerkUseByUltimateStates(player, "Grappling Hook")) {
@@ -320,11 +484,17 @@ public class AllActivePerks implements Listener {
         if(!(event.getEntity() instanceof Player)){
             return;
         }
+        Player damagedPlayer = (Player) event.getEntity();
+
         if(event.getDamager() instanceof Player){
             Player player = (Player) event.getDamager();
-            Player damagedPlayer = (Player) event.getEntity();
             Component itemDisplayName = player.getInventory().getItemInMainHand().hasItemMeta() ? player.getInventory().getItemInMainHand().getItemMeta().displayName() : null;
             String itemPlainName = itemDisplayName != null ? PlainTextComponentSerializer.plainText().serialize(itemDisplayName) : "";
+
+            if(itemPlainName.equals("Bow") || itemPlainName.equals("Shears")) {
+                addCombatUltimateCharge(player, damagedPlayer, ULTIMATE_CHARGE_ON_MELEE_BOW_OR_SHEARS_HIT);
+            }
+
             if(itemPlainName.equals("Duel")){
                 event.setCancelled(true);
                 ActivePerk perk = Cache.getActivePerks().get("Duel");
@@ -399,6 +569,10 @@ public class AllActivePerks implements Listener {
             return;
         }
         Projectile projectile = (Projectile) event.getDamager();
+        if(projectile.getType() == EntityType.ARROW && projectile.getShooter() instanceof Player shooter) {
+            addCombatUltimateCharge(shooter, damagedPlayer, ULTIMATE_CHARGE_ON_ARROW_HIT);
+        }
+
         if(projectile.getType() == EntityType.SNOWBALL) {
             event.setCancelled(true);
             Player shooterPlayer;
@@ -839,7 +1013,7 @@ public class AllActivePerks implements Listener {
         player.setVelocity(velocity);
     }
 
-    private void startArrowTrail(Arrow arrow, Player shooter) {
+    private static void startArrowTrail(Arrow arrow, Player shooter) {
         Color teamColor = resolveArrowTrailColor(shooter);
         Particle.DustOptions trailDust = new Particle.DustOptions(teamColor, 1.25f);
 
@@ -873,7 +1047,7 @@ public class AllActivePerks implements Listener {
         }.runTaskTimer(Main.getInstance(), 0L, 1L);
     }
 
-    private Color resolveArrowTrailColor(Player shooter) {
+    private static Color resolveArrowTrailColor(Player shooter) {
         DyeColor teamDye = findTeamDyeColor(shooter);
         if (teamDye != null && teamDye.getColor() != null) {
             return teamDye.getColor();
@@ -893,6 +1067,7 @@ public class AllActivePerks implements Listener {
             public void run() {
                 if (!LobbySystem.gameStarted) {
                     ultimateSessionInitialized = false;
+                    passiveChargeSecondCounter = 0;
                     stopAllGravityCorePreviews();
                     return;
                 }
@@ -912,12 +1087,22 @@ public class AllActivePerks implements Listener {
                     ultimateSessionInitialized = true;
                 }
 
+                passiveChargeSecondCounter++;
+                boolean grantPassiveCharge = passiveChargeSecondCounter >= ULTIMATE_PASSIVE_CHARGE_INTERVAL_SECONDS;
+                if (grantPassiveCharge) {
+                    passiveChargeSecondCounter = 0;
+                }
+
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (player.getGameMode() != GameMode.SURVIVAL) {
                         continue;
                     }
 
-                    addUltimateCharge(player, ULTIMATE_CHARGE_PER_SECOND);
+                    if (grantPassiveCharge) {
+                        addUltimateCharge(player, ULTIMATE_PASSIVE_CHARGE_AMOUNT);
+                    } else {
+                        updateUltimateHud(player, getUltimateCharge(player));
+                    }
                 }
             }
         }.runTaskTimer(Main.getInstance(), 20L, 20L);
@@ -964,6 +1149,26 @@ public class AllActivePerks implements Listener {
         }
 
         setUltimateCharge(player, currentCharge + amount);
+    }
+
+    private static void addCombatUltimateCharge(Player attacker, Player victim, int amount) {
+        if (amount <= 0 || !LobbySystem.gameStarted) {
+            return;
+        }
+
+        if (attacker == null || victim == null || attacker.equals(victim)) {
+            return;
+        }
+
+        if (attacker.getGameMode() != GameMode.SURVIVAL || victim.getGameMode() != GameMode.SURVIVAL) {
+            return;
+        }
+
+        if (!isEnemyPlayer(attacker, victim)) {
+            return;
+        }
+
+        addUltimateCharge(attacker, amount);
     }
 
     private static void updateUltimateHud(Player player, int charge) {
@@ -1018,6 +1223,8 @@ public class AllActivePerks implements Listener {
                 return activateChainMarkUltimate(player);
             case "Overclock":
                 return activateOverclockUltimate(player);
+            case "Minigun":
+                return activateMinigunUltimate(player);
             default:
                 return activateTimeAnchorUltimate(player);
         }
@@ -1367,6 +1574,62 @@ public class AllActivePerks implements Listener {
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, (int) (OVERCLOCK_DURATION_MS / 50L), 1, false, false, true));
         player.playSound(player.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1.0f, 1.8f);
         player.sendActionBar(Component.text("Overclock online for 8 seconds.", NamedTextColor.GOLD));
+        return true;
+    }
+
+    private static boolean activateMinigunUltimate(Player player) {
+        UUID playerId = player.getUniqueId();
+
+        BukkitTask existingTask = minigunTasks.remove(playerId);
+        if (existingTask != null) {
+            existingTask.cancel();
+        }
+
+        player.playSound(player.getLocation(), Sound.ITEM_CROSSBOW_QUICK_CHARGE_3, 1.0f, 1.15f);
+        player.sendActionBar(Component.text("Minigun online!", NamedTextColor.GOLD));
+
+        BukkitTask task = new BukkitRunnable() {
+            int burstsFired = 0;
+
+            @Override
+            public void run() {
+                if (!LobbySystem.gameStarted || !player.isOnline() || player.getGameMode() != GameMode.SURVIVAL) {
+                    cancel();
+                    minigunTasks.remove(playerId);
+                    return;
+                }
+
+                Location eye = player.getEyeLocation();
+                Vector baseDirection = eye.getDirection().normalize().multiply(2.9);
+
+                for (int i = 0; i < MINIGUN_ARROWS_PER_BURST; i++) {
+                    Arrow arrow = player.launchProjectile(Arrow.class);
+                    Vector spread = new Vector(
+                            (Math.random() - 0.5) * 0.22,
+                            (Math.random() - 0.5) * 0.16,
+                            (Math.random() - 0.5) * 0.22
+                    );
+                    arrow.setVelocity(baseDirection.clone().add(spread));
+                    arrow.setCritical(false);
+                    arrow.setPickupStatus(AbstractArrow.PickupStatus.CREATIVE_ONLY);
+                    arrow.setMetadata(MINIGUN_ARROW_METADATA, new FixedMetadataValue(Main.getInstance(), true));
+                    startArrowTrail(arrow, player);
+                }
+
+                player.playSound(player.getLocation(), Sound.ITEM_CROSSBOW_SHOOT, 0.55f, 1.65f);
+                burstsFired++;
+
+                if (burstsFired < MINIGUN_BURSTS) {
+                    return;
+                }
+
+                player.sendActionBar(Component.text("Minigun offline.", NamedTextColor.AQUA));
+                minigunTasks.remove(playerId);
+                cancel();
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, MINIGUN_BURST_INTERVAL_TICKS);
+
+        minigunTasks.put(playerId, task);
         return true;
     }
 
@@ -3247,6 +3510,13 @@ public class AllActivePerks implements Listener {
         stasisTraps.entrySet().removeIf(entry -> entry.getValue().ownerId.equals(playerId));
 
         stopGravityCorePreview(playerId);
+
+        removeSyntheticArrow(event.getPlayer());
+
+        BukkitTask minigunTask = minigunTasks.remove(playerId);
+        if (minigunTask != null) {
+            minigunTask.cancel();
+        }
 
         ultimateCharges.remove(playerId);
         ultimateReadyNotified.remove(playerId);

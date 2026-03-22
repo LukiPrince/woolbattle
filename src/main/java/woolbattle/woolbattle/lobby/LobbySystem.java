@@ -87,9 +87,42 @@ public class LobbySystem implements Listener {
     private static final int PERK_LORE_WRAP_LENGTH = 32;
     private static final String PASSIVE_PERK_MENU_TITLE = "Passive Perk";
     private static final String ULTIMATE_MENU_TITLE = "Ultimate";
-    private static final String PASSIVE_CATEGORY_WIRTSCHAFT = "Wirtschaft";
-    private static final String PASSIVE_CATEGORY_DEFENSIV = "Defensiv";
+    private static final String PASSIVE_CATEGORY_ECONOMY = "Economy";
+    private static final String PASSIVE_CATEGORY_DEFENSE = "Defense";
     private static final String PASSIVE_CATEGORY_UTILITY = "Utility";
+        private static final Map<String, String> PERK_NAME_TRANSLATIONS = Map.ofEntries(
+            Map.entry("Sparfuchs", "Bargain Hunter"),
+            Map.entry("Ankerstiefel", "Anchor Boots"),
+            Map.entry("Heimvorteil", "Homefield"),
+            Map.entry("Nachschub", "Resupply"),
+            Map.entry("Baumeister", "Builder"),
+            Map.entry("Rettungsinstinkt", "Survival Instinct"),
+            Map.entry("Standhaft", "Steadfast"),
+            Map.entry("Rueckprall", "Rebound"),
+            Map.entry("Zeitanker", "Time Anchor"),
+            Map.entry("Gravitationskern", "Gravity Core"),
+            Map.entry("Perk-Hijack", "Perk Hijack"),
+            Map.entry("Kettenmarkierung", "Chain Mark")
+        );
+        private static final Map<String, String> PERK_DESCRIPTION_TRANSLATIONS = Map.ofEntries(
+            Map.entry("Beim Abbau von Wolle erhaeltst du zusaetzliche Team-Wolle", "When mining wool, you gain extra team wool."),
+            Map.entry("20% Chance: Aktive Perks kosten keine Wolle", "20% chance: active perks cost no wool."),
+            Map.entry("12% weniger eingehender Knockback", "12% less incoming knockback."),
+            Map.entry("Auf eigener Team-Wolle bekommst du 10% Laufgeschwindigkeit", "Gain 10% movement speed while standing on your own team wool."),
+            Map.entry("Alle 5 Sekunden +1 Team-Wolle, wenn dein Inventar Platz hat", "Every 5 seconds: +1 team wool if your inventory has space."),
+            Map.entry("Jede 6. platzierte Wolle wird direkt erstattet", "Every 6th placed wool is refunded instantly."),
+            Map.entry("Einmal pro Leben rettet dich ein Void-Fall zur letzten sicheren Position (1 Herz Schaden)", "Once per life, a void fall teleports you to your last safe position (1 heart damage)."),
+            Map.entry("5% Chance, eingehenden Knockback komplett zu negieren", "5% chance to completely negate incoming knockback."),
+            Map.entry("5% Chance, Knockback abzuwehren und auf den Angreifer zurueckzugeben", "5% chance to block knockback and reflect it to the attacker."),
+            Map.entry("Nach kurzer Zeit springst du zurueck und loest eine Impulswelle aus.", "After a short delay, you jump back and release an impulse wave."),
+            Map.entry("Zieht Gegner an und schleudert sie danach auseinander.", "Pulls enemies in, then throws them apart."),
+            Map.entry("Sperrt einen gegnerischen aktiven Perk fuer kurze Zeit.", "Disables one enemy active perk for a short time."),
+            Map.entry("Stoesst nahe Gegner zurueck.", "Knocks back nearby enemies."),
+            Map.entry("Legt eine unsichtbare Falle fuer Gegner.", "Places an invisible trap for enemies."),
+            Map.entry("Erster Klick speichert Position, zweiter teleportiert zurueck.", "First click stores your position, second click teleports you back."),
+            Map.entry("Erzeugt Nebel und blendet Gegner im Bereich.", "Creates fog and blinds enemies in the area."),
+            Map.entry("Blockiert aktive Perks von Gegnern fuer 4 Sekunden.", "Blocks enemy active perks for 4 seconds.")
+        );
 
     private static String plainName(ItemMeta meta) {
         Component display = meta.displayName();
@@ -129,17 +162,34 @@ public class LobbySystem implements Listener {
 
     private static List<Component> buildPerkDescriptionLore(String description) {
         ArrayList<Component> lore = new ArrayList<>();
-        for(String line : wrapLoreText(description, PERK_LORE_WRAP_LENGTH)) {
+        for(String line : wrapLoreText(translatePerkDescription(description), PERK_LORE_WRAP_LENGTH)) {
             lore.add(Component.text(line, NamedTextColor.WHITE));
         }
         return lore;
     }
 
+    private static String translatePerkName(String internalName) {
+        return PERK_NAME_TRANSLATIONS.getOrDefault(internalName, internalName);
+    }
+
+    private static String toInternalPerkName(String displayName) {
+        for(Map.Entry<String, String> entry : PERK_NAME_TRANSLATIONS.entrySet()) {
+            if(entry.getValue().equals(displayName)) {
+                return entry.getKey();
+            }
+        }
+        return displayName;
+    }
+
+    private static String translatePerkDescription(String description) {
+        return PERK_DESCRIPTION_TRANSLATIONS.getOrDefault(description, description);
+    }
+
     private static LinkedHashMap<String, List<String>> getPassivePerkCategories() {
         LinkedHashMap<String, List<String>> categories = new LinkedHashMap<>();
-        categories.put(PASSIVE_CATEGORY_WIRTSCHAFT, Arrays.asList("Wool Duplication", "Sparfuchs", "Nachschub", "Baumeister"));
-        categories.put(PASSIVE_CATEGORY_DEFENSIV, Arrays.asList("Ankerstiefel", "Standhaft", "Rueckprall", "Rettungsinstinkt"));
-        categories.put(PASSIVE_CATEGORY_UTILITY, Collections.singletonList("Heimvorteil"));
+        categories.put(PASSIVE_CATEGORY_ECONOMY, Arrays.asList("Wool Duplication", "Sparfuchs", "Nachschub", "Baumeister"));
+        categories.put(PASSIVE_CATEGORY_DEFENSE, Arrays.asList("Ankerstiefel", "Standhaft", "Rueckprall", "Rettungsinstinkt"));
+        categories.put(PASSIVE_CATEGORY_UTILITY, Arrays.asList("Heimvorteil", "Wool Archer"));
         return categories;
     }
 
@@ -155,6 +205,7 @@ public class LobbySystem implements Listener {
         List<String> perks = getPassivePerkCategories().get(categoryName);
         return perks != null && perks.contains(selectedPerk);
     }
+
 
     private static String getSelectedPassivePerk(Player player) {
         Document foundDocument = PlayerDataCache.getPlayerPerks(player);
@@ -201,7 +252,7 @@ public class LobbySystem implements Listener {
         ArrayList<Component> lore = new ArrayList<>();
         lore.add(Component.text(subtitle, NamedTextColor.GRAY));
         lore.add(Component.text(" "));
-        lore.add(Component.text("Klicken zum Oeffnen", NamedTextColor.DARK_GRAY));
+        lore.add(Component.text("Click to open", NamedTextColor.DARK_GRAY));
         itemMeta.lore(lore);
 
         if(selected) {
@@ -210,6 +261,23 @@ public class LobbySystem implements Listener {
         }
 
         itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+
+        itemStack.setItemMeta(itemMeta);
+        return itemStack;
+    }
+
+    private static ItemStack createLobbyHotbarItem(Material material, String title, NamedTextColor color, List<Component> lore, boolean glowing) {
+        ItemStack itemStack = new ItemStack(material);
+        ItemMeta itemMeta = itemStack.getItemMeta();
+
+        itemMeta.displayName(Component.text(title, color, TextDecoration.BOLD));
+        itemMeta.lore(lore);
+        itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+
+        if(glowing) {
+            itemMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
+            itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
 
         itemStack.setItemMeta(itemMeta);
         return itemStack;
@@ -340,10 +408,6 @@ public class LobbySystem implements Listener {
             player.sendMessage(Component.text("You can't move items that are on cooldown!", NamedTextColor.RED));
             event.setCancelled(true);
         }
-        if (gameStarted) {
-            return;
-        }
-
         if (event.getWhoClicked() instanceof Player && event.getClickedInventory() != null && event.getCurrentItem().getItemMeta() != null) {
             if (!event.getView().title().equals(Component.text("Edit Inventory", NamedTextColor.AQUA)) || plainName(event.getCurrentItem().getItemMeta()).equals(" ")) {
                 List<ItemStack> items = new ArrayList<>();
@@ -369,6 +433,8 @@ public class LobbySystem implements Listener {
         if(rawItemName == null){
             return;
         }
+
+        rawItemName = toInternalPerkName(rawItemName);
 
         String passiveCategoryPrefix = PASSIVE_PERK_MENU_TITLE + " - ";
         if(rawInventoryName.startsWith(passiveCategoryPrefix)) {
@@ -950,49 +1016,101 @@ public class LobbySystem implements Listener {
         inv.setHelmet(null);
 
         // Team Selecting Item
-        ItemStack teamStack = new ItemStack(Material.RED_BED);
-        ItemMeta teamMeta = teamStack.getItemMeta();
-        teamMeta.displayName(Component.text("Team Selecting", NamedTextColor.YELLOW, TextDecoration.BOLD));
-        teamStack.setItemMeta(teamMeta);
+        ItemStack teamStack = createLobbyHotbarItem(
+            Material.RED_BED,
+            "Team Selecting",
+            NamedTextColor.YELLOW,
+            Arrays.asList(
+                Component.text("Choose your team for the next round", NamedTextColor.GRAY),
+                Component.text(" "),
+                Component.text("Click to open", NamedTextColor.DARK_GRAY)
+            ),
+            false
+        );
         inv.setItem(0, teamStack);
 
+        // Perk Item (left side for quicker access)
+        ItemStack perksStack = createLobbyHotbarItem(
+            Material.ENDER_CHEST,
+            "Perks",
+            NamedTextColor.LIGHT_PURPLE,
+            Arrays.asList(
+                Component.text("Active, passive and ultimate perks", NamedTextColor.GRAY),
+                Component.text(" "),
+                Component.text("Click to open", NamedTextColor.DARK_GRAY)
+            ),
+            true
+        );
+        inv.setItem(1, perksStack);
+
         // Achievement Item
-        ItemStack achievementStack = new ItemStack(Material.DIAMOND);
-        ItemMeta achievementMeta = achievementStack.getItemMeta();
-        achievementMeta.displayName(Component.text("Achievements", NamedTextColor.GOLD, TextDecoration.BOLD));
-        achievementStack.setItemMeta(achievementMeta);
-        inv.setItem(1, achievementStack);
+        ItemStack achievementStack = createLobbyHotbarItem(
+            Material.DIAMOND,
+            "Achievements",
+            NamedTextColor.GOLD,
+            Arrays.asList(
+                Component.text("Shows all unlocked achievements", NamedTextColor.GRAY),
+                Component.text(" "),
+                Component.text("Click to open", NamedTextColor.DARK_GRAY)
+            ),
+            false
+        );
+        inv.setItem(2, achievementStack);
 
         // Vote Life Count Item
-        ItemStack livesStack = new ItemStack(Material.FEATHER);
-        ItemMeta livesMeta = livesStack.getItemMeta();
-        livesMeta.displayName(Component.text("Amount of Lives", NamedTextColor.GREEN, TextDecoration.BOLD));
-        livesStack.setItemMeta(livesMeta);
-        inv.setItem(2, livesStack);
+        ItemStack livesStack = createLobbyHotbarItem(
+            Material.FEATHER,
+            "Amount of Lives",
+            NamedTextColor.GREEN,
+            Arrays.asList(
+                Component.text("Vote for 5, 10 or 15 lives", NamedTextColor.GRAY),
+                Component.text(" "),
+                Component.text("Click to open", NamedTextColor.DARK_GRAY)
+            ),
+            false
+        );
+        inv.setItem(4, livesStack);
 
         // Edit Inventory Item
-        ItemStack inventoryStack = new ItemStack(Material.CHEST);
-        ItemMeta inventoryMeta = inventoryStack.getItemMeta();
-        inventoryMeta.displayName(Component.text("Edit Inventory", NamedTextColor.AQUA, TextDecoration.BOLD));
-        inventoryStack.setItemMeta(inventoryMeta);
-        inv.setItem(4, inventoryStack);
-
-        // Choose Perks Item TODO: add interaction -> LATER
-        ItemStack perksStack = new ItemStack(Material.ENDER_CHEST);
-        ItemMeta perksMeta = perksStack.getItemMeta();
-        perksMeta.displayName(Component.text("Perks", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD));
-        perksStack.setItemMeta(perksMeta);
-        inv.setItem(6, perksStack);
+        ItemStack inventoryStack = createLobbyHotbarItem(
+            Material.CHEST,
+            "Edit Inventory",
+            NamedTextColor.AQUA,
+            Arrays.asList(
+                Component.text("Sort your in-game hotbar layout", NamedTextColor.GRAY),
+                Component.text(" "),
+                Component.text("Click to open", NamedTextColor.DARK_GRAY)
+            ),
+            false
+        );
+        inv.setItem(6, inventoryStack);
 
         // Leave Server Item
-        ItemStack leaveStack = new ItemStack(Material.SLIME_BALL);
-        ItemMeta leaveMeta = leaveStack.getItemMeta();
-        leaveMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
-        leaveMeta.displayName(Component.text("Leave", NamedTextColor.RED, TextDecoration.BOLD));
-        leaveMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-        leaveStack.setItemMeta(leaveMeta);
+        ItemStack leaveStack = createLobbyHotbarItem(
+            Material.SLIME_BALL,
+            "Leave",
+            NamedTextColor.RED,
+            Arrays.asList(
+                Component.text("Leaves the server", NamedTextColor.GRAY),
+                Component.text(" "),
+                Component.text("Click to execute", NamedTextColor.DARK_GRAY)
+            ),
+            true
+        );
         inv.setItem(8, leaveStack);
 
+    }
+
+    public static void openPerkMenu(Player player) {
+        showPerkMenu(player);
+    }
+
+    public static void openLifeVotingMenu(Player player) {
+        showLifeAmountVoting(player);
+    }
+
+    public static void openEditInventoryMenu(Player player) {
+        showEditInventoryMenu(player);
     }
 
     /**
@@ -1165,27 +1283,37 @@ public class LobbySystem implements Listener {
         }
 
         // Active Perk #1
-        ItemStack activeOneStack = new ItemStack(Material.CHEST);
+        ItemStack activeOneStack = new ItemStack(Material.IRON_SWORD);
         ItemMeta activeOneMeta = activeOneStack.getItemMeta();
         activeOneMeta.displayName(Component.text("Active Perk #1", NamedTextColor.LIGHT_PURPLE));
         activeOneMeta.lore(Arrays.asList(
-            Component.text("Aktuell: " + (firstActiveSelection != null ? firstActiveSelection : "Kein Perk"), NamedTextColor.GRAY),
+            Component.text("Current: " + (firstActiveSelection != null ? translatePerkName(firstActiveSelection) : "No perk selected"), NamedTextColor.GRAY),
+            Component.text("Your first active slot", NamedTextColor.DARK_GRAY),
             Component.text(" "),
-            Component.text("Klicken zum Oeffnen", NamedTextColor.DARK_GRAY)
+            Component.text("Click to open", NamedTextColor.DARK_GRAY)
         ));
+        if(firstActiveSelection != null) {
+            activeOneMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
+            activeOneMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
         activeOneMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         activeOneStack.setItemMeta(activeOneMeta);
         inv.setItem(10, activeOneStack);
 
         // Active Perk #2
-        ItemStack activeTwoStack = new ItemStack(Material.CHEST);
+        ItemStack activeTwoStack = new ItemStack(Material.CROSSBOW);
         ItemMeta activeTwoMeta = activeTwoStack.getItemMeta();
         activeTwoMeta.displayName(Component.text("Active Perk #2", NamedTextColor.LIGHT_PURPLE));
         activeTwoMeta.lore(Arrays.asList(
-            Component.text("Aktuell: " + (secondActiveSelection != null ? secondActiveSelection : "Kein Perk"), NamedTextColor.GRAY),
+            Component.text("Current: " + (secondActiveSelection != null ? translatePerkName(secondActiveSelection) : "No perk selected"), NamedTextColor.GRAY),
+            Component.text("Your second active slot", NamedTextColor.DARK_GRAY),
             Component.text(" "),
-            Component.text("Klicken zum Oeffnen", NamedTextColor.DARK_GRAY)
+            Component.text("Click to open", NamedTextColor.DARK_GRAY)
         ));
+        if(secondActiveSelection != null) {
+            activeTwoMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
+            activeTwoMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
         activeTwoMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         activeTwoStack.setItemMeta(activeTwoMeta);
         inv.setItem(12, activeTwoStack);
@@ -1195,9 +1323,9 @@ public class LobbySystem implements Listener {
         ItemMeta passiveMeta = passiveStack.getItemMeta();
         passiveMeta.displayName(Component.text("Passive Perk", NamedTextColor.LIGHT_PURPLE));
         passiveMeta.lore(Arrays.asList(
-            Component.text("Aktuell: " + (passiveSelection != null ? passiveSelection : "Kein Perk"), NamedTextColor.GRAY),
+            Component.text("Current: " + (passiveSelection != null ? translatePerkName(passiveSelection) : "No perk selected"), NamedTextColor.GRAY),
             Component.text(" "),
-            Component.text("Klicken zum Oeffnen", NamedTextColor.DARK_GRAY)
+            Component.text("Click to open", NamedTextColor.DARK_GRAY)
         ));
         passiveMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         passiveStack.setItemMeta(passiveMeta);
@@ -1208,9 +1336,9 @@ public class LobbySystem implements Listener {
         ItemMeta ultimateMeta = ultimateStack.getItemMeta();
         ultimateMeta.displayName(Component.text(ULTIMATE_MENU_TITLE, NamedTextColor.LIGHT_PURPLE));
         ultimateMeta.lore(Arrays.asList(
-            Component.text("Aktuell: " + (ultimateSelection != null ? ultimateSelection : AllActivePerks.getDefaultUltimateName()), NamedTextColor.GRAY),
+            Component.text("Current: " + (ultimateSelection != null ? translatePerkName(ultimateSelection) : translatePerkName(AllActivePerks.getDefaultUltimateName())), NamedTextColor.GRAY),
             Component.text(" "),
-            Component.text("Klicken zum Oeffnen", NamedTextColor.DARK_GRAY)
+            Component.text("Click to open", NamedTextColor.DARK_GRAY)
         ));
         ultimateMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         ultimateStack.setItemMeta(ultimateMeta);
@@ -1224,54 +1352,58 @@ public class LobbySystem implements Listener {
      * @author SimsumMC
      */
     private static void showActivePerkMenu(Player player, PerkType perkType) {
-
         String perkTypeString = perkType.toString().toLowerCase();
         String selectedPerk = null;
 
         Document foundDocument = PlayerDataCache.getPlayerPerks(player);
-        if(foundDocument != null){
-            if(foundDocument.get(perkTypeString) != null){
-                selectedPerk = (String) foundDocument.get(perkTypeString);
-            }
+        if(foundDocument != null && foundDocument.get(perkTypeString) instanceof String) {
+            selectedPerk = (String) foundDocument.get(perkTypeString);
         }
 
-        Inventory inv = Bukkit.createInventory(null, 3*9, Component.text("Active Perk #" + perkType.value, NamedTextColor.LIGHT_PURPLE));
+        Inventory inv = Bukkit.createInventory(null, 6*9, Component.text("Active Perk #" + perkType.value, NamedTextColor.LIGHT_PURPLE));
+        fillWithGlass(inv);
 
-        List<Component> newLore;
-
-        HashMap<String, ActivePerk> activePerks = Cache.getActivePerks();
-        for(ActivePerk perk : activePerks.values()){
-            if(!perk.getSelectableStatus()){
+        int slot = 0;
+        for(ActivePerk perk : Cache.getActivePerks().values()) {
+            if(!perk.getSelectableStatus()) {
                 continue;
             }
 
             ItemStack itemStack = perk.getItemStack().clone();
             ItemMeta itemMeta = itemStack.getItemMeta();
+            String internalName = plainName(itemMeta);
 
-            if(selectedPerk != null && plainName(itemMeta).equals(selectedPerk)){
+            itemMeta.displayName(Component.text(translatePerkName(internalName), NamedTextColor.AQUA));
+
+            if(selectedPerk != null && selectedPerk.equals(internalName)) {
                 itemMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
                 itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
-            else{
-                if (itemMeta.hasEnchants()){
-                    for(Enchantment enchantment : itemMeta.getEnchants().keySet()){
-                        itemMeta.removeEnchant(enchantment);
-                    }
+            else if(itemMeta.hasEnchants()) {
+                for(Enchantment enchantment : itemMeta.getEnchants().keySet()) {
+                    itemMeta.removeEnchant(enchantment);
                 }
             }
 
-
-            newLore = buildPerkDescriptionLore(perk.getDescription());
+            ArrayList<Component> newLore = new ArrayList<>(buildPerkDescriptionLore(perk.getDescription()));
             newLore.add(Component.text(" "));
             newLore.add(Component.text("Wool: ", NamedTextColor.GOLD).append(Component.text(perk.getWoolCost(), NamedTextColor.DARK_PURPLE)));
             newLore.add(Component.text("Cooldown: ", NamedTextColor.GOLD).append(Component.text(perk.getCooldown() + "s", NamedTextColor.DARK_PURPLE)));
+            newLore.add(Component.text("Click to select", NamedTextColor.GRAY));
 
             itemMeta.lore(newLore);
             itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
-
             itemStack.setItemMeta(itemMeta);
 
-            inv.addItem(itemStack);
+            while(slot < 53 && slot % 9 == 8) {
+                slot += 1;
+            }
+            if(slot >= 53) {
+                break;
+            }
+
+            inv.setItem(slot, itemStack);
+            slot += 1;
         }
 
         // Back Item
@@ -1279,7 +1411,7 @@ public class LobbySystem implements Listener {
         ItemMeta backMeta = backStack.getItemMeta();
         backMeta.displayName(Component.text("Go Back", NamedTextColor.RED));
         backStack.setItemMeta(backMeta);
-        inv.setItem(26, backStack);
+        inv.setItem(53, backStack);
 
         player.openInventory(inv);
     }
@@ -1290,7 +1422,7 @@ public class LobbySystem implements Listener {
         Inventory inv = Bukkit.createInventory(null, 3*9, Component.text(ULTIMATE_MENU_TITLE, NamedTextColor.LIGHT_PURPLE));
         fillWithGlass(inv);
 
-        int[] ultimateSlots = {10, 11, 12, 14, 15, 16};
+        int[] ultimateSlots = {10, 11, 12, 13, 14, 15, 16};
         int index = 0;
 
         for(AllActivePerks.UltimateDefinition definition : AllActivePerks.getUltimateDefinitions().values()) {
@@ -1300,7 +1432,7 @@ public class LobbySystem implements Listener {
 
             ItemStack itemStack = new ItemStack(definition.getIconMaterial());
             ItemMeta itemMeta = itemStack.getItemMeta();
-            itemMeta.displayName(Component.text(definition.getDisplayName(), NamedTextColor.LIGHT_PURPLE));
+            itemMeta.displayName(Component.text(translatePerkName(definition.getDisplayName()), NamedTextColor.LIGHT_PURPLE));
 
             if(definition.getDisplayName().equals(selectedUltimate)) {
                 itemMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
@@ -1309,7 +1441,7 @@ public class LobbySystem implements Listener {
 
             ArrayList<Component> lore = new ArrayList<>(buildPerkDescriptionLore(definition.getDescription()));
             lore.add(Component.text(" "));
-            lore.add(Component.text("Klicken zum Auswaehlen", NamedTextColor.GRAY));
+            lore.add(Component.text("Click to select", NamedTextColor.GRAY));
             itemMeta.lore(lore);
             itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
 
@@ -1335,11 +1467,11 @@ public class LobbySystem implements Listener {
 
         ItemStack selectedPerkInfo = new ItemStack(Material.NETHER_STAR);
         ItemMeta selectedPerkInfoMeta = selectedPerkInfo.getItemMeta();
-        selectedPerkInfoMeta.displayName(Component.text("Aktuelles Passiv", NamedTextColor.AQUA, TextDecoration.BOLD));
+        selectedPerkInfoMeta.displayName(Component.text("Current Passive", NamedTextColor.AQUA, TextDecoration.BOLD));
         ArrayList<Component> selectedPerkLore = new ArrayList<>();
-        selectedPerkLore.add(Component.text(selectedPerk != null ? selectedPerk : "Kein Perk ausgewaehlt", NamedTextColor.WHITE));
+        selectedPerkLore.add(Component.text(selectedPerk != null ? translatePerkName(selectedPerk) : "No perk selected", NamedTextColor.WHITE));
         selectedPerkLore.add(Component.text(" "));
-        selectedPerkLore.add(Component.text("Waehle unten eine Kategorie", NamedTextColor.DARK_GRAY));
+        selectedPerkLore.add(Component.text("Choose a category below", NamedTextColor.DARK_GRAY));
         selectedPerkInfoMeta.lore(selectedPerkLore);
         selectedPerkInfoMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         selectedPerkInfo.setItemMeta(selectedPerkInfoMeta);
@@ -1347,23 +1479,23 @@ public class LobbySystem implements Listener {
 
         inv.setItem(11, createPassiveCategoryItem(
                 Material.GOLD_INGOT,
-                PASSIVE_CATEGORY_WIRTSCHAFT,
+            PASSIVE_CATEGORY_ECONOMY,
                 NamedTextColor.GOLD,
-                "Wolle, Kosten, Build-Tempo",
-                isPerkSelectedInCategory(selectedPerk, PASSIVE_CATEGORY_WIRTSCHAFT)
+            "Wool, costs and build speed",
+            isPerkSelectedInCategory(selectedPerk, PASSIVE_CATEGORY_ECONOMY)
             ));
         inv.setItem(13, createPassiveCategoryItem(
                 Material.SHIELD,
-                PASSIVE_CATEGORY_DEFENSIV,
+            PASSIVE_CATEGORY_DEFENSE,
                 NamedTextColor.RED,
-                "Knockback und Ueberleben",
-                isPerkSelectedInCategory(selectedPerk, PASSIVE_CATEGORY_DEFENSIV)
+            "Knockback and survivability",
+            isPerkSelectedInCategory(selectedPerk, PASSIVE_CATEGORY_DEFENSE)
             ));
         inv.setItem(15, createPassiveCategoryItem(
                 Material.FEATHER,
                 PASSIVE_CATEGORY_UTILITY,
                 NamedTextColor.AQUA,
-                "Bewegung und Position",
+            "Movement and positioning",
                 isPerkSelectedInCategory(selectedPerk, PASSIVE_CATEGORY_UTILITY)
             ));
 
@@ -1395,20 +1527,20 @@ public class LobbySystem implements Listener {
         String categorySubtitle;
 
         switch(categoryName) {
-            case PASSIVE_CATEGORY_WIRTSCHAFT:
+            case PASSIVE_CATEGORY_ECONOMY:
                 categoryMaterial = Material.GOLD_INGOT;
                 categoryColor = NamedTextColor.GOLD;
-                categorySubtitle = "Wolle, Kosten, Build-Tempo";
+                categorySubtitle = "Wool, costs and build speed";
                 break;
-            case PASSIVE_CATEGORY_DEFENSIV:
+            case PASSIVE_CATEGORY_DEFENSE:
                 categoryMaterial = Material.SHIELD;
                 categoryColor = NamedTextColor.RED;
-                categorySubtitle = "Knockback und Ueberleben";
+                categorySubtitle = "Knockback and survivability";
                 break;
             default:
                 categoryMaterial = Material.FEATHER;
                 categoryColor = NamedTextColor.AQUA;
-                categorySubtitle = "Bewegung und Position";
+                categorySubtitle = "Movement and positioning";
                 break;
         }
 
@@ -1429,7 +1561,9 @@ public class LobbySystem implements Listener {
             ItemStack itemStack = perk.getItem().clone();
             ItemMeta itemMeta = itemStack.getItemMeta();
 
-            if(selectedPerk != null && plainName(itemMeta).equals(selectedPerk)){
+            itemMeta.displayName(Component.text(translatePerkName(perkName), NamedTextColor.AQUA));
+
+            if(selectedPerk != null && perkName.equals(selectedPerk)){
                 itemMeta.addEnchant(Enchantment.KNOCKBACK, 1, true);
                 itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
@@ -1443,7 +1577,7 @@ public class LobbySystem implements Listener {
 
             ArrayList<Component> newLore = new ArrayList<>(buildPerkDescriptionLore(perk.getDescription()));
             newLore.add(Component.text(" "));
-            newLore.add(Component.text("Klicken zum Auswaehlen", NamedTextColor.GRAY));
+            newLore.add(Component.text("Click to select", NamedTextColor.GRAY));
 
             itemMeta.lore(newLore);
             itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);

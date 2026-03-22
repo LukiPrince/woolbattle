@@ -72,6 +72,7 @@ public class ItemSystem {
             put("perk2", 4);
         }
     };
+    private static final String SHEARSLESS_PASSIVE_PERK = "Wool Archer";
 
     /**
      * Method to add the game's base items, additionally to this the individual player's perk-items into their
@@ -108,9 +109,16 @@ public class ItemSystem {
             perk2Slot = (int) foundDocument.get("active_perk2");
         }
 
-        ItemStack shears = Cache.getActivePerks().get("Shears").getItemStack();
+        String selectedPassivePerk = null;
+        Document perksDocument = PlayerDataCache.getPlayerPerks(player);
+        if(perksDocument != null && perksDocument.get("passive") instanceof String) {
+            selectedPassivePerk = (String) perksDocument.get("passive");
+        }
 
-        inventory.setItem(shearsSlot, shears);
+        if(!SHEARSLESS_PASSIVE_PERK.equals(selectedPassivePerk)) {
+            ItemStack shears = Cache.getActivePerks().get("Shears").getItemStack();
+            inventory.setItem(shearsSlot, shears);
+        }
 
         ItemStack bow = Cache.getActivePerks().get("Bow").getItemStack();
 
@@ -119,8 +127,6 @@ public class ItemSystem {
         ItemStack enderPearl = Cache.getActivePerks().get("Ender Pearl").getItemStack();
 
         inventory.setItem(enderPearlSlot, enderPearl);
-
-        Document perksDocument = PlayerDataCache.getPlayerPerks(player);
 
         if(perksDocument != null) {
 
@@ -197,8 +203,6 @@ public class ItemSystem {
             }
 
         }
-        inventory.setItem(9, new ItemStack(Material.ARROW));
-
         player.getInventory().setContents(inventory.getContents());
     }
 
