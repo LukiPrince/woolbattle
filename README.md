@@ -1,10 +1,19 @@
-# WoolBattle Plugin
+<h1 align="center">
+  <br>
+  <img src="images/sheep.png" alt="WoolBattle logo" width="160"/>
+  <br>
+  WoolBattle Plugin
+</h1>
 
-Fork of [niklasmoell/woolbattle](https://github.com/niklasmoell/woolbattle), extended for modern Paper servers with ultimates, passive perks, and improved lobby flow.
+<p align="center">
+  Fork of <a href="https://github.com/niklasmoell/woolbattle">niklasmoell/woolbattle</a>, extended for modern Paper servers with ultimates, passive perks, and improved lobby flow.
+</p>
 
-- Minecraft: `1.21.11`
-- Java: `21+`
-- License: `MIT`
+<p align="center">
+  <img src="https://img.shields.io/badge/minecraft-1.21.11-brightgreen?style=for-the-badge" alt="minecraft version">
+  <img src="https://img.shields.io/badge/java-21%2B-orange?style=for-the-badge" alt="java version">
+  <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="license">
+</p>
 
 ## What It Is
 
