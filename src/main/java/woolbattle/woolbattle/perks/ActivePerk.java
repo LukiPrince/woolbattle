@@ -202,38 +202,12 @@ public class ActivePerk {
         String activePerkName = this.itemName;
         Document foundDocument = PlayerDataCache.getPlayerInventories(player);
 
-        int shearsSlot;
-        int bowSlot;
-        int enderPearlSlot;
-        int perk1Slot;
-        int perk2Slot;
-
-        if(foundDocument == null){
-            shearsSlot = defaultSlots.get("shears");
-            bowSlot = defaultSlots.get("bow");
-            enderPearlSlot = defaultSlots.get("enderpearl");
-            perk1Slot = defaultSlots.get("perk1");
-            perk2Slot = defaultSlots.get("perk2");
-        }
-        else{
-            if(foundDocument.get("active_perk1") instanceof Integer){
-                perk1Slot = (int) foundDocument.get("active_perk1");
-            }
-            else {
-                perk1Slot = defaultSlots.get("perk1");
-            }
-
-            if(foundDocument.get("active_perk2") instanceof Integer){
-                perk2Slot = (int) foundDocument.get("active_perk2");
-            }
-            else {
-                perk2Slot = defaultSlots.get("perk2");
-            }
-
-            shearsSlot = (int) foundDocument.get("shears");
-            bowSlot = (int) foundDocument.get("bow");
-            enderPearlSlot = (int) foundDocument.get("ender_pearl");
-        }
+        HashMap<String, Integer> resolvedSlots = resolveBaseInventorySlots(foundDocument);
+        int shearsSlot = resolvedSlots.get("shears");
+        int bowSlot = resolvedSlots.get("bow");
+        int enderPearlSlot = resolvedSlots.get("enderpearl");
+        int perk1Slot = resolvedSlots.get("perk1");
+        int perk2Slot = resolvedSlots.get("perk2");
 
         if(!this.selectable){
             if(activePerkName.equals("Shears")){
@@ -282,38 +256,12 @@ public class ActivePerk {
         for(Player player : onlinePlayers){
             Document foundDocument = PlayerDataCache.getPlayerInventories(player);
 
-            int shearsSlot;
-            int bowSlot;
-            int enderPearlSlot;
-            int perk1Slot;
-            int perk2Slot;
-
-            if(foundDocument == null){
-                shearsSlot = defaultSlots.get("shears");
-                bowSlot = defaultSlots.get("bow");
-                enderPearlSlot = defaultSlots.get("enderpearl");
-                perk1Slot = defaultSlots.get("perk1");
-                perk2Slot = defaultSlots.get("perk2");
-            }
-            else{
-                if(foundDocument.get("active_perk1") instanceof Integer){
-                    perk1Slot = (int) foundDocument.get("active_perk1");
-                }
-                else {
-                    perk1Slot = defaultSlots.get("perk1");
-                }
-
-                if(foundDocument.get("active_perk2") instanceof Integer){
-                    perk2Slot = (int) foundDocument.get("active_perk2");
-                }
-                else {
-                    perk2Slot = defaultSlots.get("perk2");
-                }
-
-                shearsSlot = (int) foundDocument.get("shears");
-                bowSlot = (int) foundDocument.get("bow");
-                enderPearlSlot = (int) foundDocument.get("ender_pearl");
-            }
+            HashMap<String, Integer> resolvedSlots = resolveBaseInventorySlots(foundDocument);
+            int shearsSlot = resolvedSlots.get("shears");
+            int bowSlot = resolvedSlots.get("bow");
+            int enderPearlSlot = resolvedSlots.get("enderpearl");
+            int perk1Slot = resolvedSlots.get("perk1");
+            int perk2Slot = resolvedSlots.get("perk2");
 
             HashMap<String, Integer> playerSlots = new HashMap<>();
 

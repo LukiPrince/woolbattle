@@ -1189,21 +1189,12 @@ public class LobbySystem implements Listener {
         int activePerk2Slot;
 
         Document foundDocument = PlayerDataCache.getPlayerInventories(player);
-        if(foundDocument == null){
-            shearsSlot = 9;
-            bowSlot = 10;
-            enderPearlSlot = 17;
-            activePerk1Slot = 16;
-            activePerk2Slot = 11;
-        }
-        else{
-            shearsSlot = (int) foundDocument.get("shears") + 9;
-            bowSlot = (int) foundDocument.get("bow") + 9;
-            enderPearlSlot = (int) foundDocument.get("ender_pearl") + 9;
-            activePerk1Slot = (int) foundDocument.get("active_perk1") + 9;
-            activePerk2Slot = (int) foundDocument.get("active_perk2") + 9;
-
-        }
+        HashMap<String, Integer> resolvedSlots = ItemSystem.resolveBaseInventorySlots(foundDocument);
+        shearsSlot = resolvedSlots.get("shears") + 9;
+        bowSlot = resolvedSlots.get("bow") + 9;
+        enderPearlSlot = resolvedSlots.get("enderpearl") + 9;
+        activePerk1Slot = resolvedSlots.get("perk1") + 9;
+        activePerk2Slot = resolvedSlots.get("perk2") + 9;
 
         // shears
         ActivePerk shearsPerk = Cache.getActivePerks().get("Shears");

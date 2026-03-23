@@ -118,13 +118,10 @@ public class LivesSystem implements Listener {
         if (player.getLocation().getY() <= MapConfig.minHeight) {
             resetEnderPearls(player);
             AllPassivePerks.resetPerLifeState(player);
+            boolean hasRecentDamage = false;
             if (lastDamage.containsKey(player)) {
                 long realLastDamage = lastDamage.get(player);
-                if (unixTime - realLastDamage >= Config.deathCooldown) {
-                    teleportPlayerTeamSpawn(player);
-                    setPlayerSpawnProtection(player, Config.spawnProtectionLengthAfterDeath);
-                    return;
-                }
+                hasRecentDamage = (unixTime - realLastDamage) < Config.deathCooldown;
             }
 
             HashMap<Player, Player> playerDuels = Cache.getPlayerDuels();
@@ -149,6 +146,12 @@ public class LivesSystem implements Listener {
 
             HashMap<String, Integer> teamLives = Cache.getTeamLives();
 
+            if(!teamLives.containsKey(team)) {
+                teleportPlayerTeamSpawn(player);
+                setPlayerSpawnProtection(player, Config.spawnProtectionLengthAfterDeath);
+                return;
+            }
+
             int lives = teamLives.get(team);
 
             EntityDamageEvent lastDamageEvent = event.getPlayer().getLastDamageCause();
@@ -162,24 +165,23 @@ public class LivesSystem implements Listener {
                 damager = null;
             }
 
-            if(damager == null){
-                teleportPlayerTeamSpawn(player);
-                setPlayerSpawnProtection(player, Config.spawnProtectionLengthAfterDeath);
-            }
-
             if(damager instanceof Arrow){
                 Arrow arrow = (Arrow) damager;
                 damager = (Entity) arrow.getShooter();
 
             }
 
-            if (damager instanceof Player) {
-                if(lives != 0){
-                    lives -= 1;
-                }
-                teamLives.put(team, lives);
-                Cache.setTeamLives(teamLives);
+            if(!hasRecentDamage) {
+                damager = null;
+            }
 
+            if(lives != 0){
+                lives -= 1;
+            }
+            teamLives.put(team, lives);
+            Cache.setTeamLives(teamLives);
+
+            if (damager instanceof Player) {
                 lastDamage.remove(damager);
                 Cache.setLastDamage(lastDamage);
 
@@ -234,26 +236,26 @@ public class LivesSystem implements Listener {
                 killStreaks.put(damagerTeam, kills);
                 Cache.setKillStreaks(killStreaks);
 
-                if (lives == 0) {
-                    TeamSystem.removePlayerTeam(player);
-                    LobbySystem.setPlayerSpectator(player);
-                }
-                else{
-                    teleportPlayerTeamSpawn(player);
-                    setPlayerSpawnProtection(player, Config.spawnProtectionLengthAfterDeath);
-                }
-
                 HashMap<String, Integer> damagerStats = playerStats.get(damager);
                 damagerStats.put("kills", (damagerStats.get("kills") + 1));
                 playerStats.put((Player) damager, damagerStats);
-
-                HashMap<String, Integer> damagedStats = playerStats.get(player);
-                damagedStats.put("deaths", (damagedStats.get("deaths") + 1));
-                playerStats.put(player, damagedStats);
-
-                Cache.setPlayerStats(playerStats);
-
             }
+
+            HashMap<Player, HashMap<String, Integer>> playerStats = Cache.getPlayerStats();
+            HashMap<String, Integer> damagedStats = playerStats.get(player);
+            damagedStats.put("deaths", (damagedStats.get("deaths") + 1));
+            playerStats.put(player, damagedStats);
+            Cache.setPlayerStats(playerStats);
+
+            if (lives == 0) {
+                TeamSystem.removePlayerTeam(player);
+                LobbySystem.setPlayerSpectator(player);
+            }
+            else{
+                teleportPlayerTeamSpawn(player);
+                setPlayerSpawnProtection(player, Config.spawnProtectionLengthAfterDeath);
+            }
+
             LobbySystem.determinateWinnerTeam();
         }
     }

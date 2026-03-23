@@ -66,6 +66,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static woolbattle.woolbattle.team.TeamSystem.findTeamDyeColor;
+import static woolbattle.woolbattle.team.TeamSystem.getPlayerTeam;
 
 public class AllPassivePerks {
 
@@ -281,7 +282,7 @@ public class AllPassivePerks {
 
             Location rescueLocation = lastSafeLocations.get(uuid);
             if(rescueLocation == null || rescueLocation.getWorld() == null) {
-                rescueLocation = MapConfig.midLocation != null ? MapConfig.midLocation.clone() : player.getWorld().getSpawnLocation();
+                rescueLocation = getTeamSpawnLocation(player);
             }
 
             if(rescueLocation.getY() <= MapConfig.minHeight) {
@@ -531,6 +532,17 @@ public class AllPassivePerks {
 
         Block blockUnderPlayer = player.getLocation().clone().subtract(0, 1, 0).getBlock();
         return blockUnderPlayer.getType().isSolid();
+    }
+
+    private static Location getTeamSpawnLocation(Player player) {
+        String team = getPlayerTeam(player, true);
+        return switch (team) {
+            case "Blue" -> MapConfig.blueLocation != null ? MapConfig.blueLocation.clone() : player.getWorld().getSpawnLocation();
+            case "Red" -> MapConfig.redLocation != null ? MapConfig.redLocation.clone() : player.getWorld().getSpawnLocation();
+            case "Green" -> MapConfig.greenLocation != null ? MapConfig.greenLocation.clone() : player.getWorld().getSpawnLocation();
+            case "Yellow" -> MapConfig.yellowLocation != null ? MapConfig.yellowLocation.clone() : player.getWorld().getSpawnLocation();
+            default -> player.getWorld().getSpawnLocation();
+        };
     }
 
     private static void cleanupPerkState() {

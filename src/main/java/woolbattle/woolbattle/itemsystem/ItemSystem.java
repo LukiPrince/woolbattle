@@ -72,7 +72,80 @@ public class ItemSystem {
             put("perk2", 4);
         }
     };
+    private static final String[] slotResolutionOrder = new String[]{"shears", "bow", "enderpearl", "perk1", "perk2"};
     private static final String SHEARSLESS_PASSIVE_PERK = "Wool Archer";
+
+    public static HashMap<String, Integer> resolveBaseInventorySlots(Document foundDocument) {
+        HashMap<String, Integer> resolvedSlots = new HashMap<>();
+        for(String key : slotResolutionOrder) {
+            resolvedSlots.put(key, -1);
+        }
+
+        boolean[] usedSlots = new boolean[9];
+
+        if(foundDocument != null) {
+            putResolvedSlot(resolvedSlots, usedSlots, "shears", readDocumentSlot(foundDocument, "shears"));
+            putResolvedSlot(resolvedSlots, usedSlots, "bow", readDocumentSlot(foundDocument, "bow"));
+            putResolvedSlot(resolvedSlots, usedSlots, "enderpearl", readDocumentSlot(foundDocument, "ender_pearl"));
+            putResolvedSlot(resolvedSlots, usedSlots, "perk1", readDocumentSlot(foundDocument, "active_perk1"));
+            putResolvedSlot(resolvedSlots, usedSlots, "perk2", readDocumentSlot(foundDocument, "active_perk2"));
+        }
+
+        for(String key : slotResolutionOrder) {
+            int slot = resolvedSlots.getOrDefault(key, -1);
+            if(slot >= 0 && slot <= 8) {
+                continue;
+            }
+
+            int preferredSlot = defaultSlots.get(key);
+            if(!usedSlots[preferredSlot]) {
+                resolvedSlots.put(key, preferredSlot);
+                usedSlots[preferredSlot] = true;
+                continue;
+            }
+
+            int fallbackSlot = firstFreeSlot(usedSlots);
+            if(fallbackSlot >= 0) {
+                resolvedSlots.put(key, fallbackSlot);
+                usedSlots[fallbackSlot] = true;
+            }
+            else {
+                resolvedSlots.put(key, preferredSlot);
+            }
+        }
+
+        return resolvedSlots;
+    }
+
+    private static void putResolvedSlot(HashMap<String, Integer> resolvedSlots, boolean[] usedSlots, String key, Integer slot) {
+        if(slot == null || slot < 0 || slot > 8) {
+            return;
+        }
+
+        if(usedSlots[slot]) {
+            return;
+        }
+
+        resolvedSlots.put(key, slot);
+        usedSlots[slot] = true;
+    }
+
+    private static Integer readDocumentSlot(Document foundDocument, String key) {
+        Object value = foundDocument.get(key);
+        if(value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        return null;
+    }
+
+    private static int firstFreeSlot(boolean[] usedSlots) {
+        for(int i = 0; i < usedSlots.length; i++) {
+            if(!usedSlots[i]) {
+                return i;
+            }
+        }
+        return -1;
+    }
 
     /**
      * Method to add the game's base items, additionally to this the individual player's perk-items into their
@@ -94,20 +167,12 @@ public class ItemSystem {
         int passivePerkSlot = 27;
 
         Document foundDocument = PlayerDataCache.getPlayerInventories(player);
-        if(foundDocument == null){
-            shearsSlot = defaultSlots.get("shears");
-            bowSlot = defaultSlots.get("bow");
-            enderPearlSlot = defaultSlots.get("enderpearl");
-            perk1Slot = defaultSlots.get("perk1");
-            perk2Slot = defaultSlots.get("perk2");
-        }
-        else{
-            shearsSlot = (int) foundDocument.get("shears");
-            bowSlot = (int) foundDocument.get("bow");
-            enderPearlSlot = (int) foundDocument.get("ender_pearl");
-            perk1Slot = (int) foundDocument.get("active_perk1");
-            perk2Slot = (int) foundDocument.get("active_perk2");
-        }
+        HashMap<String, Integer> resolvedSlots = resolveBaseInventorySlots(foundDocument);
+        shearsSlot = resolvedSlots.get("shears");
+        bowSlot = resolvedSlots.get("bow");
+        enderPearlSlot = resolvedSlots.get("enderpearl");
+        perk1Slot = resolvedSlots.get("perk1");
+        perk2Slot = resolvedSlots.get("perk2");
 
         String selectedPassivePerk = null;
         Document perksDocument = PlayerDataCache.getPlayerPerks(player);

@@ -3542,7 +3542,7 @@ public class AllActivePerks implements Listener {
                 .setItemName(Component.text("Shears", NamedTextColor.AQUA))
                 .addEnchantment(Enchantment.EFFICIENCY, 5, false)
                 .addEnchantment(Enchantment.UNBREAKING, 10, false)
-                .addEnchantment(Enchantment.KNOCKBACK, 5, false);
+            .addEnchantment(Enchantment.KNOCKBACK, 2, false);
 
         ItemStack shearsItemStack = shears.getItemStack();
         ItemMeta shearsItemMeta = shearsItemStack.getItemMeta();
@@ -3557,8 +3557,8 @@ public class AllActivePerks implements Listener {
         ActivePerk bow = new ActivePerk(new ItemStack(Material.BOW), 0, 1, false, false)
                 .setItemName(Component.text("Bow", NamedTextColor.AQUA))
                 .addEnchantment(Enchantment.UNBREAKING, 10, false)
-                .addEnchantment(Enchantment.KNOCKBACK, 5, false)
-                .addEnchantment(Enchantment.PUNCH, 5, false)
+            .addEnchantment(Enchantment.KNOCKBACK, 2, false)
+            .addEnchantment(Enchantment.PUNCH, 2, false)
                 .addEnchantment(Enchantment.INFINITY, 1, false);
 
         ItemStack bowItemStack = bow.getItemStack();
