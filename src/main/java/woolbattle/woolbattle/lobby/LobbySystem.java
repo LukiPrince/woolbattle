@@ -160,7 +160,7 @@ public class LobbySystem implements Listener {
         return lines;
     }
 
-    private static List<Component> buildPerkDescriptionLore(String description) {
+    public static List<Component> buildPerkDescriptionLore(String description) {
         ArrayList<Component> lore = new ArrayList<>();
         for(String line : wrapLoreText(translatePerkDescription(description), PERK_LORE_WRAP_LENGTH)) {
             lore.add(Component.text(line, NamedTextColor.WHITE));
@@ -168,11 +168,11 @@ public class LobbySystem implements Listener {
         return lore;
     }
 
-    private static String translatePerkName(String internalName) {
+    public static String translatePerkName(String internalName) {
         return PERK_NAME_TRANSLATIONS.getOrDefault(internalName, internalName);
     }
 
-    private static String toInternalPerkName(String displayName) {
+    public static String toInternalPerkName(String displayName) {
         for(Map.Entry<String, String> entry : PERK_NAME_TRANSLATIONS.entrySet()) {
             if(entry.getValue().equals(displayName)) {
                 return entry.getKey();
@@ -185,7 +185,7 @@ public class LobbySystem implements Listener {
         return PERK_DESCRIPTION_TRANSLATIONS.getOrDefault(description, description);
     }
 
-    private static LinkedHashMap<String, List<String>> getPassivePerkCategories() {
+    public static LinkedHashMap<String, List<String>> getPassivePerkCategories() {
         LinkedHashMap<String, List<String>> categories = new LinkedHashMap<>();
         categories.put(PASSIVE_CATEGORY_ECONOMY, Arrays.asList("Wool Duplication", "Sparfuchs", "Nachschub", "Baumeister"));
         categories.put(PASSIVE_CATEGORY_DEFENSE, Arrays.asList("Ankerstiefel", "Standhaft", "Rueckprall", "Rettungsinstinkt"));
@@ -207,7 +207,7 @@ public class LobbySystem implements Listener {
     }
 
 
-    private static String getSelectedPassivePerk(Player player) {
+    public static String getSelectedPassivePerk(Player player) {
         Document foundDocument = PlayerDataCache.getPlayerPerks(player);
         if(foundDocument == null) {
             return null;
@@ -217,7 +217,7 @@ public class LobbySystem implements Listener {
         return passive instanceof String ? (String) passive : null;
     }
 
-    private static String getSelectedUltimate(Player player) {
+    public static String getSelectedUltimate(Player player) {
         Document foundDocument = PlayerDataCache.getPlayerPerks(player);
         if (foundDocument != null && foundDocument.get("ultimate") instanceof String) {
             String selected = (String) foundDocument.get("ultimate");
@@ -594,7 +594,7 @@ public class LobbySystem implements Listener {
                 showEditInventoryMenu(player);
                 break;
             case "Perks":
-                showPerkMenu(player);
+                new AnimatedPerkGUI(player).open();
                 break;
             case "Team Selecting":
                 TeamSystem.showTeamSelectionInventory(player);
@@ -933,7 +933,7 @@ public class LobbySystem implements Listener {
      * @param perkType the Type of the perk as an enum
      * @author SimsumMC
      */
-    public void savePerkSelection(Player player, String perkName, PerkType perkType){
+    public static void savePerkSelection(Player player, String perkName, PerkType perkType){
         String perkTypeString = perkType.toString().toLowerCase();
 
         if(perkType == PerkType.ULTIMATE && !AllActivePerks.isUltimateName(perkName)){
@@ -1102,7 +1102,7 @@ public class LobbySystem implements Listener {
     }
 
     public static void openPerkMenu(Player player) {
-        showPerkMenu(player);
+        new AnimatedPerkGUI(player).open();
     }
 
     public static void openLifeVotingMenu(Player player) {
