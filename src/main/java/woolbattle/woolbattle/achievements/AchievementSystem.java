@@ -24,13 +24,9 @@ SOFTWARE.
 
 package woolbattle.woolbattle.achievements;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Updates;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -44,19 +40,16 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import static com.mongodb.client.model.Filters.eq;
-
 public class AchievementSystem implements Listener {
 
-    private static Document getOrCreateAchievementsDocument(Player player, MongoCollection<Document> collection) {
+    private static Document getOrCreateAchievementsDocument(Player player) {
         String playerId = player.getUniqueId().toString();
-        Document foundDocument = collection.find(eq("_id", playerId)).first();
+        Document foundDocument = Main.getStore().find("playerAchievements", playerId);
         if (foundDocument != null) {
             return foundDocument;
         }
-
         Document document = new Document("_id", playerId).append("achievements", new ArrayList<String>());
-        collection.insertOne(document);
+        Main.getStore().insert("playerAchievements", document);
         return document;
     }
 
@@ -95,19 +88,15 @@ public class AchievementSystem implements Listener {
      * @author Beelzebub
      */
     public static void giveFullwool(Player player) {
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerAchievements");
-        Document query = new Document().append("_id",  player.getUniqueId().toString());
-        Document foundDocument = getOrCreateAchievementsDocument(player, collection);
+        String playerId = player.getUniqueId().toString();
+        Document foundDocument = getOrCreateAchievementsDocument(player);
         ArrayList<String> arrayList = extractAchievements(foundDocument);
         if (arrayList.contains("fullwool")) {
             return;
         }
         else if (countWoolInInventory(player) >= Config.maxStacks * 64) {
             player.sendMessage(Component.text("You just received the 'Strategist' Achievement!", NamedTextColor.GREEN));
-
-            Bson updates = Updates.addToSet("achievements", "fullwool");
-            collection.updateOne(query, updates);
+            Main.getStore().addToSet("playerAchievements", playerId, "achievements", "fullwool");
         }
     }
 
@@ -118,10 +107,8 @@ public class AchievementSystem implements Listener {
      * @author Beelzebub
      */
     public static void giveKillstreak5(Player player) {
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerAchievements");
-        Document query = new Document().append("_id",  player.getUniqueId().toString());
-        Document foundDocument = getOrCreateAchievementsDocument(player, collection);
+        String playerId = player.getUniqueId().toString();
+        Document foundDocument = getOrCreateAchievementsDocument(player);
         ArrayList<String> arrayList = extractAchievements(foundDocument);
 
         if (!LobbySystem.gameStarted) {
@@ -132,9 +119,7 @@ public class AchievementSystem implements Listener {
         }
         else {
             player.sendMessage(Component.text("You just received the 'Dominator' Achievement!", NamedTextColor.GREEN));
-            Bson updates = Updates.addToSet("achievements", "killstreak5");
-
-            collection.updateOne(query, updates);
+            Main.getStore().addToSet("playerAchievements", playerId, "achievements", "killstreak5");
         }
     }
 
@@ -202,17 +187,14 @@ public class AchievementSystem implements Listener {
      @EventHandler
      public void onPlayerJoin (PlayerJoinEvent event){
          Player player = event.getPlayer();
-         MongoDatabase db = Main.getMongoDatabase();
-         MongoCollection<Document> collection = db.getCollection("playerAchievements");
-
-         Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+         Document foundDocument = Main.getStore().find("playerAchievements", player.getUniqueId().toString());
          if (foundDocument == null) {
              HashMap<String, Object> playerData = new HashMap<String, Object>() {{
                  put("_id", player.getUniqueId().toString());
                  put("achievements", new ArrayList<String>());
              }};
              Document document = new Document(playerData);
-             collection.insertOne(document);
+             Main.getStore().insert("playerAchievements", document);
          }
      }
 }

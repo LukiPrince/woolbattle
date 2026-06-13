@@ -24,8 +24,6 @@
 
 package woolbattle.woolbattle.achievements;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bson.Document;
@@ -40,17 +38,15 @@ import woolbattle.woolbattle.Main;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.mongodb.client.model.Filters.eq;
-
 public class AchievementUI {
 
-    private static ArrayList<String> getPlayerAchievements(Player player, MongoCollection<Document> collection) {
+    private static ArrayList<String> getPlayerAchievements(Player player) {
         String playerId = player.getUniqueId().toString();
-        Document foundDocument = collection.find(eq("_id", playerId)).first();
+        Document foundDocument = Main.getStore().find("playerAchievements", playerId);
 
         if (foundDocument == null) {
             Document document = new Document("_id", playerId).append("achievements", new ArrayList<String>());
-            collection.insertOne(document);
+            Main.getStore().insert("playerAchievements", document);
             return new ArrayList<>();
         }
 
@@ -72,9 +68,7 @@ public class AchievementUI {
      * @author Beelzebub
      */
     public static void showAchievementGUI(Player player) {
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerAchievements");
-        ArrayList<String> arrayList = getPlayerAchievements(player, collection);
+        ArrayList<String> arrayList = getPlayerAchievements(player);
         Inventory achievements = Bukkit.createInventory(null, 27, Component.text("Achievements", NamedTextColor.GOLD));
 
         //adding glass
