@@ -24,11 +24,7 @@
 
 package woolbattle.woolbattle.lobby;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Updates;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -688,9 +684,6 @@ public class LobbySystem implements Listener {
         }
 
         //put the new configuration in the database
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerInventories");
-
         Document foundDocument = PlayerDataCache.getPlayerInventories(player);
         if(foundDocument == null){
             HashMap<String, Object> playerData = new HashMap<String, Object>(){{
@@ -703,21 +696,17 @@ public class LobbySystem implements Listener {
             }};
 
             Document document = new Document(playerData);
-            collection.insertOne(document);
+            Main.getStore().insert("playerInventories", document);
             PlayerDataCache.putPlayerInventories(player, document);
         }
         else{
-            Document query = new Document().append("_id",  player.getUniqueId().toString());
-
-            Bson updates = Updates.combine(
-                    Updates.set("shears", finalShearsPosition),
-                    Updates.set("bow", finalBowPosition),
-                    Updates.set("ender_pearl", finalEnderPearlPosition),
-                    Updates.set("active_perk1", finalActivePerk1Position),
-                    Updates.set("active_perk2", finalActivePerk2Position)
-            );
-
-            collection.updateOne(query, updates);
+            java.util.Map<String, Object> updates = new java.util.HashMap<>();
+            updates.put("shears", finalShearsPosition);
+            updates.put("bow", finalBowPosition);
+            updates.put("ender_pearl", finalEnderPearlPosition);
+            updates.put("active_perk1", finalActivePerk1Position);
+            updates.put("active_perk2", finalActivePerk2Position);
+            Main.getStore().set("playerInventories", player.getUniqueId().toString(), updates);
 
             Document updatedDocument = new Document(foundDocument);
             updatedDocument.put("shears", finalShearsPosition);
@@ -941,9 +930,6 @@ public class LobbySystem implements Listener {
             return;
         }
 
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerPerks");
-
         Document foundDocument = PlayerDataCache.getPlayerPerks(player);
         if(foundDocument == null){
 
@@ -958,7 +944,7 @@ public class LobbySystem implements Listener {
             playerData.put(perkTypeString, perkName);
 
             Document document = new Document(playerData);
-            collection.insertOne(document);
+            Main.getStore().insert("playerPerks", document);
             PlayerDataCache.putPlayerPerks(player, document);
 
             if(perkType == PerkType.ULTIMATE){
@@ -981,11 +967,8 @@ public class LobbySystem implements Listener {
                 }
             }
 
-            Document query = new Document().append("_id",  player.getUniqueId().toString());
-
-            Bson updates = Updates.set(perkTypeString, perkName);
-
-            collection.updateOne(query, updates);
+            Main.getStore().set("playerPerks", player.getUniqueId().toString(),
+                    java.util.Collections.singletonMap(perkTypeString, perkName));
 
             Document updatedDocument = new Document(foundDocument);
             updatedDocument.put(perkTypeString, perkName);
