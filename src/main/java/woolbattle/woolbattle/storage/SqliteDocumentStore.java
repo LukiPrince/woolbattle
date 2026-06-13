@@ -16,7 +16,7 @@ import java.util.Map;
 
 /**
  * SQLite-Implementierung des DocumentStore. Eine Tabelle pro Collection,
- * Dokument als RELAXED-JSON in der Spalte "data". Methoden sind synchronized,
+ * Dokument als Canonical-Extended-JSON in der Spalte "data". Methoden sind synchronized,
  * weil eine einzelne Connection geteilt wird.
  */
 public final class SqliteDocumentStore implements DocumentStore {
@@ -26,8 +26,12 @@ public final class SqliteDocumentStore implements DocumentStore {
             "playerStats", "map", "blockBreaking"
     };
 
+    // EXTENDED (Canonical Extended JSON) statt RELAXED: nur dieser Modus haelt die
+    // BSON-Zahlentypen exakt ($numberLong/$numberInt/$numberDouble). Mit RELAXED kaemen
+    // als Long gespeicherte Werte (z. B. Map-Chunk-Koordinaten) als Integer zurueck und
+    // brechen Code, der sie als long entpackt (BlockBreakingSystem.resetMap).
     private static final JsonWriterSettings JSON =
-            JsonWriterSettings.builder().outputMode(JsonMode.RELAXED).build();
+            JsonWriterSettings.builder().outputMode(JsonMode.EXTENDED).build();
 
     private final Connection connection;
 

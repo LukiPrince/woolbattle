@@ -1,7 +1,14 @@
-"""Einmalige Migration der lokalen woolbattle-Mongo nach SQLite (woolbattle.db)."""
-import json
+"""Einmalige Migration der lokalen woolbattle-Mongo nach SQLite (woolbattle.db).
+
+Serialisiert die Dokumente als Canonical Extended JSON (json_util), damit die
+BSON-Zahlentypen erhalten bleiben ($numberLong/$numberInt/$numberDouble). Das Plugin
+liest mit JsonMode.EXTENDED zurueck; nur so bleibt z. B. Long (Map-Chunk-Koordinaten)
+ein Long statt zu Integer zu werden.
+"""
 import sqlite3
 import sys
+from bson.json_util import CANONICAL_JSON_OPTIONS
+from bson.json_util import dumps as bson_dumps
 from pymongo import MongoClient
 
 COLLECTIONS = ["playerPerks", "playerInventories", "playerAchievements",
@@ -22,7 +29,7 @@ for c in COLLECTIONS:
         _id = str(doc["_id"])
         doc["_id"] = _id
         cur.execute(f'INSERT OR REPLACE INTO "{c}" (_id, data) VALUES (?, ?)',
-                    (_id, json.dumps(doc)))
+                    (_id, bson_dumps(doc, json_options=CANONICAL_JSON_OPTIONS)))
 con.commit()
 
 print("=== migration counts (mongo -> sqlite) ===")

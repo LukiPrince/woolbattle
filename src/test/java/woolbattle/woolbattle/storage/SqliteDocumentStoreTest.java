@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -79,5 +80,22 @@ class SqliteDocumentStoreTest {
         List<?> inner = (List<?>) outer.get(0);
         assertEquals(-37.0, inner.get(0));
         assertEquals(89.0, inner.get(1));
+    }
+
+    @Test
+    void preservesLongValuesThroughRoundTrip() {
+        // Map chunk coordinates are stored as Long (BSON int64 in the old Mongo).
+        // A naive JSON round-trip decodes small numbers as Integer, which breaks
+        // code that unboxes them as long (e.g. BlockBreakingSystem.resetMap).
+        List<List<Long>> chunks = new ArrayList<>();
+        chunks.add(new ArrayList<>(List.of(3L, -5L)));
+        store.insert("map", new Document("_id", "mapChunks_Test").append("chunks", chunks));
+
+        Document found = store.find("map", "mapChunks_Test");
+        List<?> outer = (List<?>) found.get("chunks");
+        List<?> inner = (List<?>) outer.get(0);
+        assertInstanceOf(Long.class, inner.get(0));
+        assertEquals(3L, inner.get(0));
+        assertEquals(-5L, inner.get(1));
     }
 }
