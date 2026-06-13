@@ -1,6 +1,5 @@
 package woolbattle.woolbattle.woolsystem;
 
-import com.mongodb.client.MongoDatabase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bson.Document;
@@ -11,7 +10,6 @@ import woolbattle.woolbattle.Main;
 import woolbattle.woolbattle.WoolHelper;
 import java.util.ArrayList;
 import java.util.HashSet;
-import static com.mongodb.client.model.Filters.eq;
 import static java.lang.String.format;
 
 public class BlockBreakingSystem {
@@ -152,14 +150,9 @@ public class BlockBreakingSystem {
      * @author Servaturus
      * */
     public static void clearDbMapBlocks(){
-
-        MongoDatabase db = Main.getMongoClient().getDatabase("woolbattle");
         String id = mapBlocksId();
-        db.getCollection("map").
-                replaceOne(
-                eq("_id", id),
-                new Document("_id", id).append("mapBlocks", new ArrayList<ArrayList<Double>>())
-        );
+        Main.getStore().replace("map", id,
+                new Document("_id", id).append("mapBlocks", new ArrayList<ArrayList<Double>>()));
     }
 
     /**
@@ -168,19 +161,15 @@ public class BlockBreakingSystem {
      *
      */
     public static void fetchMapBlocks() {
-        MongoDatabase db = Main.getMongoClient().getDatabase("woolbattle");
         ArrayList<Location> updatedMapBlocks = new ArrayList<>(mapBlocks);
         HashSet<Location> knownBlocks = new HashSet<>(mapBlocksLookup);
         String id = mapBlocksId();
 
-        //Checks, whether the "map" collection and the "mapBlocks" documents exist in the db, creates them, if this is not the case.
+        //Checks, whether the "mapBlocks" document exists in the db, creates it, if this is not the case.
 
-        if(!db.listCollectionNames().into(new ArrayList<>()).contains("map")){
-            db.createCollection("map");
-        }
-        Document found = db.getCollection("map").find(eq("_id", id)).first();
+        Document found = Main.getStore().find("map", id);
         if(found == null){
-            db.getCollection("map").insertOne( new Document("_id", id).append("mapBlocks", new ArrayList<ArrayList<Double>>()));
+            Main.getStore().insert("map", new Document("_id", id).append("mapBlocks", new ArrayList<ArrayList<Double>>()));
         }
 
         //Iterates over the mapBlocks, present in the db, converts the into valid locations and ultimately add them to a previously created array.
@@ -189,7 +178,7 @@ public class BlockBreakingSystem {
         org.bukkit.World gameWorld = (MapConfig.gameWorldName != null && Bukkit.getWorld(MapConfig.gameWorldName) != null)
                 ? Bukkit.getWorld(MapConfig.gameWorldName) : Bukkit.getWorlds().get(0);
 
-        for(ArrayList<Double> argArray: (ArrayList<ArrayList<Double>>) Main.getMongoDatabase().getCollection("map").find(eq("_id", id)).first().get("mapBlocks")){
+        for(ArrayList<Double> argArray: (ArrayList<ArrayList<Double>>) Main.getStore().find("map", id).get("mapBlocks")){
             if(argArray.size() == 0){
                 break;
             }else {
@@ -222,16 +211,13 @@ public class BlockBreakingSystem {
             return;
         }
         String id = mapBlocksId();
-        if(!Main.getMongoDatabase().listCollectionNames().into(new ArrayList<>()).contains("map")){
-            Main.getMongoDatabase().createCollection("map");
-        }
-        Document found = Main.getMongoDatabase().getCollection("map").find(eq("_id", id)).first();
+        Document found = Main.getStore().find("map", id);
         if(found == null){
-            Main.getMongoDatabase().getCollection("map").insertOne(new Document("_id", id).append("mapBlocks", new ArrayList<ArrayList<Double>>()));
+            Main.getStore().insert("map", new Document("_id", id).append("mapBlocks", new ArrayList<ArrayList<Double>>()));
         }
 
         //Fetches the stored mapBlocks from the db into a new array (update).
-            ArrayList<ArrayList<Double>> update = (ArrayList<ArrayList<Double>>) Main.getMongoDatabase().getCollection("map").find(eq("_id", id)).first().get("mapBlocks");
+            ArrayList<ArrayList<Double>> update = (ArrayList<ArrayList<Double>>) Main.getStore().find("map", id).get("mapBlocks");
 
             //Adds the cached blocks to the updated array, in case they are not already present in said collection.
 
@@ -260,7 +246,7 @@ public class BlockBreakingSystem {
             });
 
             //Replaces the mapBlocksArray in the db with the previously-prepared one (update).
-            Main.getMongoDatabase().getCollection("map").replaceOne(eq("_id", id), new Document("_id", id).append("mapBlocks", update));
+            Main.getStore().replace("map", id, new Document("_id", id).append("mapBlocks", update));
     }
 
     /**
@@ -404,7 +390,7 @@ public class BlockBreakingSystem {
      *
      */
     public static void resetMap(){
-        Document doc = Main.getMongoDatabase().getCollection("map").find(eq("_id", mapChunksId())).first();
+        Document doc = Main.getStore().find("map", mapChunksId());
         if(doc == null){
             Main.getInstance().getLogger().warning("There are no chunks, belonging to the map, specified in the database");
             return;

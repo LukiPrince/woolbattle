@@ -30,7 +30,6 @@ import org.bukkit.World;
 import woolbattle.woolbattle.MapConfig;
 import woolbattle.woolbattle.Main;
 import java.util.ArrayList;
-import static com.mongodb.client.model.Filters.eq;
 
 
 public class MapSystem {
@@ -40,19 +39,17 @@ public class MapSystem {
     public static void defineMapChunks(ArrayList<ArrayList<Long>> chunks){
         String id = mapChunksId();
 
-        if(Main.getMongoDatabase().getCollection("map").find(eq("_id", id)).first() == null){
-            Main.getMongoDatabase().getCollection("map").insertOne(new Document("_id", id).append("chunks", new ArrayList<ArrayList<Long>>()));
+        if(Main.getStore().find("map", id) == null){
+            Main.getStore().insert("map", new Document("_id", id).append("chunks", new ArrayList<ArrayList<Long>>()));
         }
 
         ArrayList<ArrayList<Long>> dbChunks;
         try{
-            dbChunks = (ArrayList<ArrayList<Long>>) Main.getMongoDatabase().getCollection("map").find(eq("_id", id)).first().get("chunks");
-
+            dbChunks = (ArrayList<ArrayList<Long>>) Main.getStore().find("map", id).get("chunks");
         }catch(ClassCastException e){
             Main.getInstance().getLogger().warning("The chunks value in the database could not be cast to an ArrayList.");
             dbChunks = new ArrayList<>();
         }
-
 
         if(dbChunks != null && dbChunks.size() >0 ){
             for(ArrayList<Long> chunk : dbChunks){
@@ -63,7 +60,7 @@ public class MapSystem {
         }
 
         Document chunkDoc = new Document("_id", id).append("chunks", chunks);
-        Main.getMongoDatabase().getCollection("map").replaceOne(eq("_id", id), chunkDoc);
+        Main.getStore().replace("map", id, chunkDoc);
     }
 
     public static ArrayList<ArrayList<Long>> getChunksInRange(World world /*temporary undefined parameter, to be modified in the future*/, long bx, long by, long ex, long ey){

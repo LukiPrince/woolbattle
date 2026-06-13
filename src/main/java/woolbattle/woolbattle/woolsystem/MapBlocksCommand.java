@@ -11,7 +11,6 @@ import woolbattle.woolbattle.MapConfig;
 import woolbattle.woolbattle.Main;
 import java.util.ArrayList;
 import java.util.Locale;
-import static com.mongodb.client.model.Filters.eq;
 
 public class MapBlocksCommand implements CommandExecutor {
 
@@ -55,10 +54,10 @@ public class MapBlocksCommand implements CommandExecutor {
                     int previousSizeDb;
 
                     String id = "mapBlocks_" + MapConfig.mapName;
-                    Document found = Main.getMongoDatabase().getCollection("map").find(eq("_id", id)).first();
+                    Document found = Main.getStore().find("map", id);
                     if(found == null){
                         previousSizeDb = 0;
-                        Main.getMongoDatabase().getCollection("map").insertOne(new Document("_id", id).append("mapBlocks", new ArrayList<>()));
+                        Main.getStore().insert("map", new Document("_id", id).append("mapBlocks", new ArrayList<>()));
                     }
                     /*if(!Main.getMongoClient().listDatabaseNames().into(new ArrayList<String>()).contains("woolbattle")||
                             !Main.getMongoClient().getDatabase("woolbattle").listCollectionNames().into(new ArrayList<String>()).contains("blockBreaking") ||
@@ -68,20 +67,16 @@ public class MapBlocksCommand implements CommandExecutor {
 
                     }*/
                     else{
-                        previousSizeDb = ((ArrayList<BsonValue>) Main.getMongoDatabase().
-                                getCollection("map").
-                                find(eq("_id", id)).
-                                first().
+                        previousSizeDb = ((ArrayList<BsonValue>) Main.getStore().
+                                find("map", id).
                                 get("mapBlocks"))
                                 .size();
                     }
 
                     BlockBreakingSystem.pushMapBlocks();
 
-                    int currentSize= ((ArrayList<BsonValue>) Main.getMongoDatabase().
-                            getCollection("map").
-                            find(eq("_id", id)).
-                            first().
+                    int currentSize= ((ArrayList<BsonValue>) Main.getStore().
+                            find("map", id).
                             get("mapBlocks")).size();
 
                     sender.sendMessage(Component.text("The blocks having been pushed are equal to ", NamedTextColor.GREEN)
@@ -103,14 +98,8 @@ public class MapBlocksCommand implements CommandExecutor {
                             String dbId = "mapBlocks_" + MapConfig.mapName;
                             sender.sendMessage(Component.text("The following array-like string is standing on behalf of the blocks, currently present in the mapBlocks collection of the db:\n", NamedTextColor.GREEN)
                                     .append(BlockBreakingSystem.doubleArrArrToComponent((ArrayList<ArrayList<Double>>) Main.
-                                            getMongoClient().
-                                            getDatabase("woolbattle").
-                                            getCollection("map").
-                                            find(eq(
-                                                    "_id",
-                                                    dbId)
-                                            ).
-                                            first().
+                                            getStore().
+                                            find("map", dbId).
                                             get("mapBlocks")))
                             );
                             break;
