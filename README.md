@@ -30,7 +30,7 @@ WoolBattle is a fast team minigame centered around wool economy:
 - active + passive perk loadouts
 - selectable ultimates
 - map-specific configuration
-- MongoDB persistence (stats, perks, achievements)
+- embedded SQLite persistence (stats, perks, achievements) — no database server required
 - custom model data support for perk textures
 
 ## Perks And Ultimates
@@ -55,8 +55,8 @@ Ultimate charging is intentionally combat-focused:
 
 1. Build or download latest jar.
 2. Put jar into `plugins/`.
-3. Start server once to generate `plugins/WoolBattle/config.json`.
-4. Set MongoDB connection in config.
+3. Start server once to generate `plugins/WoolBattle/config.json` and the SQLite database.
+4. (Optional) Adjust the `database` path in config — defaults to `plugins/WoolBattle/woolbattle.db`, created automatically. No database server needed.
 5. Select map (`/setmap Splend` or `/setmap Vimo`).
 6. Start match with `/gstart`.
 
