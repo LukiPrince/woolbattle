@@ -46,7 +46,8 @@ public class Config {
 
     private static boolean fileExisting = false;
 
-    public static final String mongoDatabase = getString("mongodb");
+    public static final String databasePath = getString("database") != null
+            ? getString("database") : "plugins/WoolBattle/woolbattle.db";
 
     /** The map to load on startup. Map-specific settings are in MapConfig. */
     public static final String defaultMap = getString("mapName") != null ? getString("mapName") : "Splend";
@@ -83,7 +84,7 @@ public class Config {
                 try {
                     file.createNewFile();
                     Files.write(Paths.get(file.toURI()), Collections.singleton("{\n" +
-                            "  \"mongodb\": \"ADD the connection string HERE\",\n" +
+                            "  \"database\": \"plugins/WoolBattle/woolbattle.db\",\n" +
                             "  \"mapName\": \"Splend\",\n" +
                             "  \"defaultLives\": 10,\n" +
                             "  \"spawnProtectionAfterDeath\": 5,\n" +
