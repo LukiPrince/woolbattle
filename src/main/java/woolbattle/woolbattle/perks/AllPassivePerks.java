@@ -24,9 +24,6 @@
 
 package woolbattle.woolbattle.perks;
 
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bson.Document;
@@ -384,8 +381,6 @@ public class AllPassivePerks {
     }
 
     public static void assignPlayersToPerks(){
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerPerks");
         HashMap<String, PassivePerk<? extends Event, ?>> passivePerks = Cache.getPassivePerks();
 
         baumeisterPlacements.clear();
@@ -398,23 +393,19 @@ public class AllPassivePerks {
             playersByPerk.put(perkName, new ArrayList<>());
         }
 
-        FindIterable<Document> iterable = collection.find();
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            Document document = Main.getStore().find("playerPerks", player.getUniqueId().toString());
+            if(document == null) {
+                continue;
+            }
 
-        for(Document document : iterable) {
             Object passiveName = document.get("passive");
-            Object playerId = document.get("_id");
-
-            if(!(passiveName instanceof String) || !(playerId instanceof String)) {
+            if(!(passiveName instanceof String)) {
                 continue;
             }
 
             ArrayList<Player> perkPlayers = playersByPerk.get((String) passiveName);
-            if(perkPlayers == null) {
-                continue;
-            }
-
-            Player player = Bukkit.getPlayer(UUID.fromString((String) playerId));
-            if(player != null) {
+            if(perkPlayers != null) {
                 perkPlayers.add(player);
             }
         }

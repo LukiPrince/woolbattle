@@ -24,12 +24,8 @@
 
 package woolbattle.woolbattle.perks;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import org.bson.Document;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -43,8 +39,6 @@ import woolbattle.woolbattle.Main;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.UUID;
-import java.util.function.Consumer;
 
 public abstract class PassivePerk<G extends Event, E extends G> implements Listener {
     private int delay = 0;
@@ -72,15 +66,7 @@ public abstract class PassivePerk<G extends Event, E extends G> implements Liste
         item.setItemMeta(meta);
         this.description = description;
 
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerPerks");
-        collection.listIndexes().forEach((Consumer) document -> {
-            assert document instanceof Document;
-
-            if(((Document) document).get("passive").equals(this.name)){
-                players.add(Bukkit.getPlayer((UUID) ((Document) document).get("_id")));
-            }
-        });
+        // Player assignment is performed by AllPassivePerks.assignPlayersToPerks() at game start.
     }
 
     public PassivePerk (ItemStack item, Component name, boolean overwriteEvent, String description){
@@ -92,15 +78,7 @@ public abstract class PassivePerk<G extends Event, E extends G> implements Liste
         this.overwriteEvent = overwriteEvent;
         this.description = description;
 
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerPerks");
-        collection.listIndexes().forEach((Consumer) document -> {
-            assert document instanceof Document;
-
-            if(((Document) document).get("passive") != null && ((Document) document).get("passive").equals(this.name)){
-                players.add(Bukkit.getPlayer((UUID) ((Document) document).get("_id")));
-            }
-        });
+        // Player assignment is performed by AllPassivePerks.assignPlayersToPerks() at game start.
     }
 
     public void functionality(){
