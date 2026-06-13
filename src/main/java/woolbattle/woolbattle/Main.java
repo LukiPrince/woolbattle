@@ -24,12 +24,6 @@
 
 package woolbattle.woolbattle;
 
-import com.mongodb.ConnectionString;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -49,6 +43,8 @@ import woolbattle.woolbattle.team.TeamSystem;
 import woolbattle.woolbattle.woolsystem.BlockBreakingSystem;
 import woolbattle.woolbattle.woolsystem.BlockRegistrationCommand;
 import woolbattle.woolbattle.woolsystem.MapBlocksCommand;
+import woolbattle.woolbattle.storage.DocumentStore;
+import woolbattle.woolbattle.storage.SqliteDocumentStore;
 
 import org.bukkit.WorldCreator;
 import com.google.gson.JsonObject;
@@ -59,14 +55,11 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import static com.mongodb.client.model.Filters.eq;
-
 public final class Main extends JavaPlugin {
 
     private static Main instance;
 
-    private static MongoClient mongoClient;
-    private static MongoDatabase db;
+    private static DocumentStore store;
 
     @Override
     public void onEnable() {
@@ -99,12 +92,7 @@ public final class Main extends JavaPlugin {
         // Load map-specific config (spawns, world, heights) for the default map
         MapConfig.load(Config.defaultMap);
 
-        ConnectionString connectionString = new ConnectionString(Config.mongoDatabase);
-        MongoClientSettings settings = MongoClientSettings.builder()
-                .applyConnectionString(connectionString)
-                .build();
-        mongoClient = MongoClients.create(settings);
-        db = mongoClient.getDatabase("woolbattle");
+        store = new SqliteDocumentStore(Config.databasePath);
 
         // SimsumMC's Things
         Bukkit.getPluginManager().registerEvents(new LobbySystem(), this);
@@ -131,9 +119,9 @@ public final class Main extends JavaPlugin {
         getCommand("map").setExecutor(new MapCommand());
 
         String mapBlocksId = "mapBlocks_" + Config.defaultMap;
-        Document found = db.getCollection("map").find(eq("_id", mapBlocksId)).first();
+        Document found = store.find("map", mapBlocksId);
         if (found == null) {
-            db.getCollection("map").insertOne(new Document("_id", mapBlocksId).append("mapBlocks", new ArrayList<ArrayList<Double>>()));
+            store.insert("map", new Document("_id", mapBlocksId).append("mapBlocks", new ArrayList<ArrayList<Double>>()));
         }
 
         BlockBreakingSystem.setCollectBrokenBlocks(false);
@@ -149,16 +137,14 @@ public final class Main extends JavaPlugin {
         for (Player player : Bukkit.getOnlinePlayers())
         {
             player.setAllowFlight(true);
-            MongoCollection<Document> collection = db.getCollection("playerAchievements");
-
-            Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+            Document foundDocument = store.find("playerAchievements", player.getUniqueId().toString());
             if(foundDocument == null) {
                 HashMap<String, Object> playerData = new HashMap<String, Object>() {{
                     put("_id", player.getUniqueId().toString());
                     put("achievements", new ArrayList<String>());
                 }};
                 Document document = new Document(playerData);
-                collection.insertOne(document);
+                store.insert("playerAchievements", document);
             }
         }
     }
@@ -168,10 +154,9 @@ public final class Main extends JavaPlugin {
         Bukkit.getScheduler().cancelTasks(this);
         PlayerDataCache.clear();
 
-        if (mongoClient != null) {
-            mongoClient.close();
-            mongoClient = null;
-            db = null;
+        if (store != null) {
+            store.close();
+            store = null;
         }
 
         instance = null;
@@ -181,11 +166,7 @@ public final class Main extends JavaPlugin {
         return instance;
     }
 
-    public static MongoDatabase getMongoDatabase() {
-        return db;
-    }
-
-    public static MongoClient getMongoClient() {
-        return mongoClient;
+    public static DocumentStore getStore() {
+        return store;
     }
 }
