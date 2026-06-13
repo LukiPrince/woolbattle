@@ -1,13 +1,10 @@
 package woolbattle.woolbattle;
 
-import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static com.mongodb.client.model.Filters.eq;
 
 public final class PlayerDataCache {
 
@@ -30,12 +27,7 @@ public final class PlayerDataCache {
             return playerPerksCache.get(playerId);
         }
 
-        MongoDatabase db = Main.getMongoDatabase();
-        if (db == null) {
-            return null;
-        }
-
-        Document foundDocument = db.getCollection("playerPerks").find(eq("_id", playerId)).first();
+        Document foundDocument = Main.getStore().find("playerPerks", playerId);
         playerPerksCache.put(playerId, foundDocument);
         return foundDocument;
     }
@@ -53,12 +45,7 @@ public final class PlayerDataCache {
             return playerInventoriesCache.get(playerId);
         }
 
-        MongoDatabase db = Main.getMongoDatabase();
-        if (db == null) {
-            return null;
-        }
-
-        Document foundDocument = db.getCollection("playerInventories").find(eq("_id", playerId)).first();
+        Document foundDocument = Main.getStore().find("playerInventories", playerId);
         playerInventoriesCache.put(playerId, foundDocument);
         return foundDocument;
     }
