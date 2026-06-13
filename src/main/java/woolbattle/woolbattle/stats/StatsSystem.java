@@ -24,11 +24,7 @@
 
 package woolbattle.woolbattle.stats;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Updates;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -38,8 +34,6 @@ import woolbattle.woolbattle.Cache;
 import woolbattle.woolbattle.Main;
 
 import java.util.HashMap;
-
-import static com.mongodb.client.model.Filters.eq;
 
 public class StatsSystem {
 
@@ -120,15 +114,12 @@ public class StatsSystem {
         int streaks = playerStats.get("streaks");
         int usedPerks = playerStats.get("used_perks");
 
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerStats");
-
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        String playerId = player.getUniqueId().toString();
+        Document foundDocument = Main.getStore().find("playerStats", playerId);
 
         if(foundDocument == null){
-
             HashMap<String, Object> newPlayerStats = new HashMap<String, Object>(){{
-                put("_id", player.getUniqueId().toString());
+                put("_id", playerId);
                 put("games", games);
                 put("wins", wins);
                 put("kills", kills);
@@ -136,9 +127,7 @@ public class StatsSystem {
                 put("streaks", streaks);
                 put("used_perks", usedPerks);
             }};
-
-            Document document = new Document(newPlayerStats);
-            collection.insertOne(document);
+            Main.getStore().insert("playerStats", new Document(newPlayerStats));
         }
         else{
             int totalGames = (int) foundDocument.get("games") + games;
@@ -148,18 +137,14 @@ public class StatsSystem {
             int totalStreaks = (int) foundDocument.get("streaks") + streaks;
             int totalUsedPerks = (int) foundDocument.get("used_perks") + usedPerks;
 
-            Bson updates = Updates.combine(
-                    Updates.set("games", totalGames),
-                    Updates.set("wins", totalWins),
-                    Updates.set("kills", totalKills),
-                    Updates.set("deaths", totalDeaths),
-                    Updates.set("streaks", totalStreaks),
-                    Updates.set("used_perks", totalUsedPerks)
-            );
-
-            Document query = new Document().append("_id",  player.getUniqueId().toString());
-
-            collection.updateOne(query, updates);
+            java.util.Map<String, Object> updates = new java.util.HashMap<>();
+            updates.put("games", totalGames);
+            updates.put("wins", totalWins);
+            updates.put("kills", totalKills);
+            updates.put("deaths", totalDeaths);
+            updates.put("streaks", totalStreaks);
+            updates.put("used_perks", totalUsedPerks);
+            Main.getStore().set("playerStats", playerId, updates);
         }
     }
 
@@ -169,10 +154,7 @@ public class StatsSystem {
      * @author SimsumMC
      */
     public static Component getPlayerStatsFormatted(OfflinePlayer player) {
-        MongoDatabase db = Main.getMongoDatabase();
-        MongoCollection<Document> collection = db.getCollection("playerStats");
-
-        Document foundDocument = collection.find(eq("_id", player.getUniqueId().toString())).first();
+        Document foundDocument = Main.getStore().find("playerStats", player.getUniqueId().toString());
 
         if (foundDocument == null) {
             return Component.text("This player has no stats!", NamedTextColor.RED);
